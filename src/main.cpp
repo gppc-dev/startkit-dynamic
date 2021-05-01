@@ -1,201 +1,149 @@
-#include <stdio.h>
-#include <stdint.h>
+#include <cstdio>
 #include <numeric>
 #include <algorithm>
+#include <string>
+#include <cmath>
+#include <iostream>
 #include "ScenarioLoader.h"
 #include "Timer.h"
 #include "Entry.h"
 
-void LoadMap(const char *fname, std::vector<bool> &map, int &w, int &h);
+using namespace std;
 
-struct stats {
-	std::vector<double> times;
-	std::vector<xyLoc> path;
-	std::vector<int> lengths;
+string datafile, mapfile, scenfile, flag;
+vector<bool> mapData;
+int width, height;
+bool pre   = false;
+bool run   = false;
+bool check = false;
 
-	double GetTotalTime()
-	{
-		return std::accumulate(times.begin(), times.end(), 0.0);
-	}
-	double GetMaxTimestep()
-	{
-		return *std::max_element(times.begin(), times.end());
-	}
-	double Get20MoveTime()
-	{
-		for (unsigned int x = 0; x < lengths.size(); x++)
-			if (lengths[x] >= 20)
-				return std::accumulate(times.begin(), times.begin()+1+x, 0.0);
-		return GetTotalTime();
-	}
-	double GetPathLength()
-	{
-		double len = 0;
-		for (int x = 0; x < (int)path.size()-1; x++)
-		{
-			if (path[x].x == path[x+1].x || path[x].y == path[x+1].y)
-			{
-				len++;
-			}
-			else {
-				len += 1.4142;
-			}
-		}
-		return len;
-	}
-	bool ValidatePath(int width, int height, const std::vector<bool> &mapData)
-	{
-		for (int x = 0; x < (int)path.size()-1; x++)
-		{
-			if (abs(path[x].x - path[x+1].x) > 1)
-				return false;
-			if (abs(path[x].y - path[x+1].y) > 1)
-				return false;
-			if (!mapData[path[x].y*width+path[x].x])
-				return false;
-			if (!mapData[path[x+1].y*width+path[x+1].x])
-				return false;
-			if (path[x].x != path[x+1].x && path[x].y != path[x+1].y)
-			{
-				if (!mapData[path[x+1].y*width+path[x].x])
-					return false;
-				if (!mapData[path[x].y*width+path[x+1].x])
-					return false;
-			}
-		}
-		return true;
-	}
-};
+void LoadMap(const char *fname, vector<bool> &map, int &width, int &height)
+{
+  FILE *f;
+  f = fopen(fname, "r");
+  if (f)
+  {
+    fscanf(f, "type octile\nheight %d\nwidth %d\nmap\n", &height, &width);
+    map.resize(height*width);
+    for (int y = 0; y < height; y++)
+    {
+      for (int x = 0; x < width; x++)
+      {
+        char c;
+        do {
+          fscanf(f, "%c", &c);
+        } while (isspace(c));
+        map[y*width+x] = (c == '.' || c == 'G' || c == 'S');
+      }
+    }
+    fclose(f);
+  }
+}
+
+double GetPathLength(const vector<xyLoc>& path)
+{
+  double len = 0;
+  for (int x = 0; x < (int)path.size()-1; x++)
+  {
+    if (path[x].x == path[x+1].x || path[x].y == path[x+1].y)
+    {
+      len++;
+    }
+    else {
+      len += 1.4142;
+    }
+  }
+  return len;
+}
+
+void RunExperiment(void* data) {
+  Timer t;
+  ScenarioLoader scen(scenfile.c_str());
+  vector<xyLoc> thePath;
+
+  string resultfile = GetName() + "-benchmark.csv";
+  ofstream fout(resultfile);
+  const string header = "map,scen,experiment_id,path_size,path_length,ref_length,time_cost";
+
+  fout << header << endl;
+  for (int x = 0; x < scen.GetNumExperiments(); x++)
+  {
+    bool done;
+      xyLoc s, g;
+    s.x = scen.GetNthExperiment(x).GetStartX();
+    s.y = scen.GetNthExperiment(x).GetStartY();
+    g.x = scen.GetNthExperiment(x).GetGoalX();
+    g.y = scen.GetNthExperiment(x).GetGoalY();
+
+    thePath.clear();
+    t.StartTimer();
+    done = GetPath(data, s, g, thePath);
+    t.EndTimer();
+    double tcost = t.GetElapsedTime();
+    double plen = done?GetPathLength(thePath): 0;
+    double ref_len = scen.GetNthExperiment(x).GetDistance();
+
+
+    fout << mapfile << "," << scenfile       << ","
+         << x       << "," << thePath.size() << ","
+         << plen    << "," << ref_len        << ","
+         << tcost   << endl;
+
+    if (check) {
+      printf("%d %d %d %d %d", s.x, s.y, g.x, g.y, (int)thePath.size());
+      for (const auto& it: thePath) {
+        printf(" %d %d", it.x, it.y);
+      }
+      printf("\n");
+    }
+  }
+}
+
+void print_help(char **argv) {
+  printf("Invalid Arguments\nUsage %s <flag> <map> <scenario>\n", argv[0]);
+  printf("Flags:\n");
+  printf("\t-full : Preprocess map and run scenario\n");
+  printf("\t-pre : Preprocess map\n");
+  printf("\t-run : Run scenario without preprocessing\n");
+  printf("\t-check: Run for validation\n");
+}
 
 int main(int argc, char **argv)
 {
-	char filename[255];
-	std::vector<xyLoc> thePath;
-	std::vector<bool> mapData;
-	int width, height;
-	bool pre = false;
-	bool run = false;
 
-	if (argc != 4)
-	{
-		printf("Invalid Arguments\nUsage %s <flag> <map> <scenario>\n", argv[0]);
-		printf("Flags:\n");
-		printf("\t-full : Preprocess map and run scenario\n");
-		printf("\t-pre : Preprocess map\n");
-		printf("\t-run : Run scenario without preprocessing\n");
-		exit(0);
-	}
-	if (strcmp(argv[1], "-full") == 0)
-	{
-		pre = run = true;
-	}
-	else if (strcmp(argv[1], "-pre") == 0)
-	{
-		pre = true;
-	}
-	else if (strcmp(argv[1], "-run") == 0)
-	{
-		run = true;
-	}
-	else {
-        printf("Invalid Arguments\nUsage %s <flag> <map> <scenario>\n", argv[0]);
-		printf("Flags:\n");
-        printf("\t-full : Preprocess map and run scenario\n");
-        printf("\t-pre : Preprocess map\n");
-        printf("\t-run : Run scenario without preprocessing\n");
-        exit(0);
-	}
-	
-	LoadMap(argv[2], mapData, width, height);
-	sprintf(filename, "%s-%s", GetName(), argv[2]);
+  flag = string(argv[1]);
+  mapfile = string(argv[2]);
+  scenfile = string(argv[3]);
 
-	if (pre)
-	{
-		PreprocessMap(mapData, width, height, filename);
-	}
-	
-	if (!run)
-	{
-		return 0;
-	}
+  // redirect stdout to file
+  string outfile = GetName() + ".stdout";
+  freopen(outfile.c_str(), "w", stdout);
 
-	void *reference = PrepareForSearch(mapData, width, height, filename);
+  if (argc != 4)
+  {
+    print_help(argv);
+    exit(0);
+  }
+  if (flag== "-full") pre = run = true;
+  else if (flag == "-pre") pre = true;
+  else if (flag == "-run") run = true;
+  else if (flag == "-check") run = check = true;
+  else {
+    print_help(argv);
+    exit(0);
+  }
+  
+  LoadMap(mapfile.c_str(), mapData, width, height);
+  datafile = GetName() + "-" + mapfile;
 
-	ScenarioLoader scen(argv[3]);
+  if (pre)
+    PreprocessMap(mapData, width, height, datafile);
+  
+  if (!run)
+    return 0;
 
-	Timer t;
-	std::vector<stats> experimentStats;
-	for (int x = 0; x < scen.GetNumExperiments(); x++)
-    {
-		//printf("%d of %d\n", x+1, scen.GetNumExperiments());
-		thePath.resize(0);
-		experimentStats.resize(x+1);
-		bool done;
-		do {
-			xyLoc s, g;
-			s.x = scen.GetNthExperiment(x).GetStartX();
-			s.y = scen.GetNthExperiment(x).GetStartY();
-			g.x = scen.GetNthExperiment(x).GetGoalX();
-			g.y = scen.GetNthExperiment(x).GetGoalY();
+  void *reference = PrepareForSearch(mapData, width, height, datafile);
 
-			t.StartTimer();
-			done = GetPath(reference, s, g, thePath);
-			t.EndTimer();
-
-			experimentStats[x].times.push_back(t.GetElapsedTime());
-			experimentStats[x].lengths.push_back(thePath.size());
-			for (unsigned int t = experimentStats[x].path.size(); t < thePath.size(); t++)
-				experimentStats[x].path.push_back(thePath[t]);
-		} while (done == false);
-
-    }
-
-	for (unsigned int x = 0; x < experimentStats.size(); x++)
-	{
-		printf("%s\ttotal-time\t%f\tmax-time-step\t%f\ttime-20-moves\t%f\ttotal-len\t%f\tsubopt\t%f\t", argv[3],
-			   experimentStats[x].GetTotalTime(), experimentStats[x].GetMaxTimestep(), experimentStats[x].Get20MoveTime(),
-			   experimentStats[x].GetPathLength(), 
-			   experimentStats[x].GetPathLength() == scen.GetNthExperiment(x).GetDistance() ? 1.0 : 
-			   experimentStats[x].GetPathLength() / scen.GetNthExperiment(x).GetDistance()
-		);
-		if (experimentStats[x].path.size() == 0 ||
-			(experimentStats[x].ValidatePath(width, height, mapData) &&
-			 scen.GetNthExperiment(x).GetStartX() == experimentStats[x].path[0].x &&
-			 scen.GetNthExperiment(x).GetStartY() == experimentStats[x].path[0].y &&
-			 scen.GetNthExperiment(x).GetGoalX() == experimentStats[x].path.back().x &&
-			 scen.GetNthExperiment(x).GetGoalY() == experimentStats[x].path.back().y))
-		{
-			printf("valid\n");
-		}
-		else {
-			printf("invalid\n");
-		}
-	}
-
-	return 0;
-}
-
-void LoadMap(const char *fname, std::vector<bool> &map, int &width, int &height)
-{
-	FILE *f;
-	f = fopen(fname, "r");
-	if (f)
-    {
-		fscanf(f, "type octile\nheight %d\nwidth %d\nmap\n", &height, &width);
-		map.resize(height*width);
-		for (int y = 0; y < height; y++)
-		{
-			for (int x = 0; x < width; x++)
-			{
-				char c;
-				do {
-					fscanf(f, "%c", &c);
-				} while (isspace(c));
-				map[y*width+x] = (c == '.' || c == 'G' || c == 'S');
-				//printf("%c", c);
-			}
-			//printf("\n");
-		}
-		fclose(f);
-    }
+  RunExperiment(reference);
+  return 0;
 }
