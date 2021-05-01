@@ -25,3 +25,14 @@
 
 * Running executable for benchmarking: `<prefix> ./run ${other flags}`
   * we will track time/memory usage
+
+# Evaluation Workflow
+1. Build docker image based on dockerfile in submission repo.
+2. Start the container in background.
+3. Run pre-processing for debug maps.
+4. Run validation for debug scenarios.
+5. Run pre-processing for benchmark maps.
+6. Run validation for benchmark scenarios.
+7. Run benchmark for benchmark scenarios.
+8. Submit final result.
+
