@@ -17,7 +17,7 @@ bool GetPath(void *data, xyLoc s, xyLoc g, vector<xyLoc> &path) {
   int16_t w = dij->width;
 
   vector<int> pa(dij->bits->size(), -1);
-  bool res = dij->run({s.x, s.y}, {g.x, g.y}, pa);
+  bool res = dij->run(s.x, s.y, g.x, g.y, pa);
   if (res) {
     int16_t x = g.x, y = g.y;
     while (true) {

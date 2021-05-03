@@ -8,11 +8,9 @@ using namespace std;
 
 class Dijkstra {
 
-typedef pair<int, int> xy;
-
 struct Node {
   int x, y;
-  double d;
+  double d = 0;
 
   bool operator< (const Node& rhs) const {
     return d > rhs.d;
@@ -27,28 +25,30 @@ public:
   Dijkstra(const vector<bool>* mapData, int w, int h): 
     bits(mapData), width(w), height(h) {};
 
-  int xy2id(xy loc) {
-    return loc.second * width + loc.first;
+  inline int id(const Node&loc) const {
+    return loc.y * width + loc.x;
   }
     
-  bool traversable(xy loc) {
-    return bits->at(xy2id(loc));
+  inline bool traversable(const Node& loc) const {
+    return bits->at(id(loc));
   }
 
-  bool run(xy s, xy g, vector<int>& pa) {
+  bool run(int sx, int sy, int gx, int gy, vector<int>& pa) {
     priority_queue<Node, vector<Node>> q;
     dist = vector<double>(bits->size(), numeric_limits<double>::max());
+    Node s{sx, sy, 0};
+    Node g{gx, gy, 0};
 
-    dist[xy2id(s)] = 0;
-    pa[xy2id(s)] = -1;
-    q.push({s.first, s.second, 0});
+    dist[id(s)] = 0;
+    pa[id(s)] = -1;
+    q.push(s);
 
     const int dx[] = {0, 0, 1, -1, 1, -1, 1, -1};
     const int dy[] = {1, -1, 0, 0, 1, -1, -1, 1};
     while (!q.empty()) {
       Node c = q.top(); q.pop();
-      if (c.d != dist[xy2id({c.x, c.y})]) continue;
-      if (c.x == g.first && c.y == g.second) return true;
+      if (c.d != dist[id(c)]) continue;
+      if (c.x == g.x && c.y == g.y) return true;
       for (int i=0; i<8; i++) {
         int x = c.x + dx[i];
         int y = c.y + dy[i];
@@ -59,9 +59,9 @@ public:
               !traversable({x, y})) 
             continue;
           double w = (c.x == x || c.y == y)? 1: 1.4142;
-          if (dist[xy2id({x, y})] > c.d + w) {
-            dist[xy2id({x, y})] = c.d + w;
-            pa[xy2id({x, y})] = xy2id({c.x, c.y});
+          if (dist[id({x, y})] > c.d + w) {
+            dist[id({x, y})] = c.d + w;
+            pa[id({x, y})] = id({c.x, c.y});
             q.push({x, y, c.d+w});
           }
         }
