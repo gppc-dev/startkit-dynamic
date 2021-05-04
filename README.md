@@ -27,6 +27,8 @@
   * we will track time/memory usage
 
 # Evaluation Workflow
+* The docker image working directory should be set to the directory where executables are.
+
 1. Build docker image based on dockerfile in submission repo.
 2. Start the container in background.
 3. Run pre-processing for debug maps.
