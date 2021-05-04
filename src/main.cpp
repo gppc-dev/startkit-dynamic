@@ -108,31 +108,36 @@ void print_help(char **argv) {
   printf("\t-check: Run for validation\n");
 }
 
+bool parse_argv(int argc, char **argv) {
+  if (argc < 2) return false;
+  flag = string(argv[1]);
+  if (flag== "-full") pre = run = true;
+  else if (flag == "-pre") pre = true;
+  else if (flag == "-run") run = true;
+  else if (flag == "-check") run = check = true;
+
+  if (argc < 3) return false;
+  mapfile = string(argv[2]);
+
+  if (run) {
+    if (argc < 4) return false;
+    scenfile = string(argv[3]);
+  }
+  return true;
+}
+
 int main(int argc, char **argv)
 {
-
-  flag = string(argv[1]);
-  mapfile = string(argv[2]);
-  scenfile = string(argv[3]);
 
   // redirect stdout to file
   string outfile = GetName() + ".stdout";
   freopen(outfile.c_str(), "w", stdout);
 
-  if (argc != 4)
-  {
+  if (!parse_argv(argc, argv)) {
     print_help(argv);
-    exit(0);
+    exit(1);
   }
-  if (flag== "-full") pre = run = true;
-  else if (flag == "-pre") pre = true;
-  else if (flag == "-run") run = true;
-  else if (flag == "-check") run = check = true;
-  else {
-    print_help(argv);
-    exit(0);
-  }
-  
+
   LoadMap(mapfile.c_str(), mapData, width, height);
   datafile = GetName() + "-" + mapfile;
 
