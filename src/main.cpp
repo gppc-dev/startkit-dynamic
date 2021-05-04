@@ -61,7 +61,7 @@ void RunExperiment(void* data) {
   ScenarioLoader scen(scenfile.c_str());
   vector<xyLoc> thePath;
 
-  string resultfile = GetName() + "-benchmark.csv";
+  string resultfile = "result.csv";
   ofstream fout(resultfile);
   const string header = "map,scen,experiment_id,path_size,path_length,ref_length,time_cost";
 
@@ -94,7 +94,7 @@ void RunExperiment(void* data) {
       for (const auto& it: thePath) {
         printf(" %d %d", it.x, it.y);
       }
-      printf("\n");
+      printf(" %.5f\n", plen);
     }
   }
 }
@@ -130,8 +130,8 @@ int main(int argc, char **argv)
 {
 
   // redirect stdout to file
-  string outfile = GetName() + ".stdout";
-  freopen(outfile.c_str(), "w", stdout);
+  freopen("run.stdout", "w", stdout);
+  freopen("run.stderr", "w", stderr);
 
   if (!parse_argv(argc, argv)) {
     print_help(argv);

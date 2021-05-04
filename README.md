@@ -7,13 +7,13 @@
 
 ## I/O Setup
 
-* All `stdout` from participant's program are redirected to a file `*.stdout`
+* All `stdout` from participant's program are redirected to a file `run.stdout`
 
-* All `stderr` from participant's are redirected to a file `*.stderr`
+* All `stderr` from participant's are redirected to a file `run.stderr`
 
-* The results of benchmark (i.e. `../${exec} -run <map> <scen>`) are written to `*.csv`
+* The results of benchmark (i.e. `../${exec} -run <map> <scen>`) are written to `result.csv`
 
-* All these files are on server so that we can control hiding/revealing information to participants.
+* All these files are in docker, and will backup to server so that we can hide/reveal information to participants.
 
 ## Execution Setup
 
