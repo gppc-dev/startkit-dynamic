@@ -61,7 +61,7 @@ void RunExperiment(void* data) {
   ScenarioLoader scen(scenfile.c_str());
   vector<xyLoc> thePath;
 
-  string resultfile = GetName() + "-benchmark.csv";
+  string resultfile = "result.csv";
   ofstream fout(resultfile);
   const string header = "map,scen,experiment_id,path_size,path_length,ref_length,time_cost";
 
@@ -94,7 +94,7 @@ void RunExperiment(void* data) {
       for (const auto& it: thePath) {
         printf(" %d %d", it.x, it.y);
       }
-      printf("\n");
+      printf(" %.5f\n", plen);
     }
   }
 }
@@ -108,31 +108,36 @@ void print_help(char **argv) {
   printf("\t-check: Run for validation\n");
 }
 
-int main(int argc, char **argv)
-{
-
+bool parse_argv(int argc, char **argv) {
+  if (argc < 2) return false;
   flag = string(argv[1]);
-  mapfile = string(argv[2]);
-  scenfile = string(argv[3]);
-
-  // redirect stdout to file
-  string outfile = GetName() + ".stdout";
-  freopen(outfile.c_str(), "w", stdout);
-
-  if (argc != 4)
-  {
-    print_help(argv);
-    exit(0);
-  }
   if (flag== "-full") pre = run = true;
   else if (flag == "-pre") pre = true;
   else if (flag == "-run") run = true;
   else if (flag == "-check") run = check = true;
-  else {
-    print_help(argv);
-    exit(0);
+
+  if (argc < 3) return false;
+  mapfile = string(argv[2]);
+
+  if (run) {
+    if (argc < 4) return false;
+    scenfile = string(argv[3]);
   }
-  
+  return true;
+}
+
+int main(int argc, char **argv)
+{
+
+  // redirect stdout to file
+  freopen("run.stdout", "w", stdout);
+  freopen("run.stderr", "w", stderr);
+
+  if (!parse_argv(argc, argv)) {
+    print_help(argv);
+    exit(1);
+  }
+
   LoadMap(mapfile.c_str(), mapData, width, height);
   datafile = GetName() + "-" + mapfile;
 
