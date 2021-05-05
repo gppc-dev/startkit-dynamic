@@ -6,24 +6,22 @@
 # Details on the server side
 
 * Setting up environment: 
-  * `docker build -t <image name> <dockerfile>`: build docker image based on a default/user-defined dockerfile
-  * `docker run -d <image> ...`: start the container in background
+  * `docker build -t <image name> <dockerfile>`: build docker image based on a default/user-defined dockerfile.
+  * Building executable:
+    * The dockerfile include a RUN command that running a user provided compile script `./compile.sh` to build executable.
+  * `docker run -d --name <container name> <image name> ...`: start the container in background
 
-* All following commands are running in docker, and have prefix: `docker container exec -it <container name>`
-
-* Building executable:
-  * `<prefix> ./compile.sh`: run user provided compile script
-  * user can read all outputs for debugging
+* All following commands are running in docker, and have prefix: `docker container exec <container name>`
 
 * Running preprocessing:
-  * `<prefix> ./preprocessing.sh`: run user provided preprocessing script
+  * `<prefix> ./run -pre ${map_path} none`: run user provided preprocessing script
   * To discuss: user can read none/part/full outputs?
 
 * Running executable with validator
-  * `<prefix> bash -c "./run --validate ${other flags} | ./validator"`
-  * the `validator` read from `stdin` and print verdict message to `stdout`, and user can read the full verdict message from the site
+  * `<prefix> ./run -check ${map_path} ${scenario_path} `
+  * the run will write output to a file and the server copy the output from container to host server and use `validator` to validate the output.
 
-* Running executable for benchmarking: `<prefix> ./run ${other flags}`
+* Running executable for benchmarking: `<prefix> ./run -run $${map_path} ${scenario_path}`
   * we will track time/memory usage
 
 # Evaluation Workflow
