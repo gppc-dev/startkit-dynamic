@@ -33,3 +33,9 @@
 
 # IDE
 .history
+
+# Generated files
+src/result.csv
+src/run
+src/run.stderr
+src/run.stdout
