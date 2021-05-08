@@ -1,23 +1,23 @@
 #include <algorithm>
 #include <map>
-#include "Dijkstra.h"
+#include "Astar.h"
 #include "Entry.h"
 
 
 void PreprocessMap(vector<bool> &bits, int width, int height, const string filename) {}
 
 void *PrepareForSearch(vector<bool> &bits, int width, int height, const string filename) {
-  Dijkstra* dij = new Dijkstra(&bits, width, height);
-  return dij;
+  Astar* astar = new Astar(&bits, width, height);
+  return astar;
 }
 
 bool GetPath(void *data, xyLoc s, xyLoc g, vector<xyLoc> &path) {
 
-  Dijkstra* dij = (Dijkstra*)(data);
-  int16_t w = dij->width;
+  Astar* astar = (Astar*)(data);
+  int16_t w = astar->width;
 
-  vector<int> pa(dij->bits->size(), -1);
-  bool res = dij->run(s.x, s.y, g.x, g.y, pa);
+  vector<int> pa(astar->bits->size(), -1);
+  bool res = astar->run(s.x, s.y, g.x, g.y, pa);
   if (res) {
     int16_t x = g.x, y = g.y;
     while (true) {

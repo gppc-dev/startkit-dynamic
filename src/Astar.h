@@ -3,17 +3,24 @@
 #include <limits>
 #include <queue>
 #include <vector>
+#include <math.h>
 #include <map>
 using namespace std;
 
-class Dijkstra {
+class Astar {
+
+const double SQRT2 = 1.4143;
 
 struct Node {
   int x, y;
-  double d = 0;
+  double g = 0;
+  double h = 0;
+
+  inline double f() const { return g + h; }
 
   bool operator< (const Node& rhs) const {
-    return d > rhs.d;
+    if (f() == rhs.f()) return g > rhs.g;
+    else return f() > rhs.f();
   }
 };
 
@@ -22,7 +29,7 @@ public:
   int width, height;
   vector<double> dist;
 
-  Dijkstra(const vector<bool>* mapData, int w, int h): 
+  Astar(const vector<bool>* mapData, int w, int h): 
     bits(mapData), width(w), height(h) {};
 
   inline int id(const Node&loc) const {
@@ -33,11 +40,18 @@ public:
     return bits->at(id(loc));
   }
 
+  double hVal(const Node& a, const Node& b) {
+    int diag = min(abs(a.x - b.x), abs(a.y - b.y));
+    int card = abs(a.x - b.x) + abs(a.y - b.y) - 2*diag;
+    return card + diag * SQRT2;
+  }
+
   bool run(int sx, int sy, int gx, int gy, vector<int>& pa) {
-    priority_queue<Node, vector<Node>> q;
+    priority_queue<Node, vector<Node>, less<Node>> q;
     dist = vector<double>(bits->size(), numeric_limits<double>::max());
-    Node s{sx, sy, 0};
-    Node g{gx, gy, 0};
+    Node g{gx, gy, 0, 0};
+    Node s{sx, sy, 0, 0};
+    s.h = hVal(s, g);
 
     dist[id(s)] = 0;
     pa[id(s)] = -1;
@@ -47,7 +61,7 @@ public:
     const int dy[] = {1, -1, 0, 0, 1, -1, -1, 1};
     while (!q.empty()) {
       Node c = q.top(); q.pop();
-      if (c.d != dist[id(c)]) continue;
+      if (c.g != dist[id(c)]) continue;
       if (c.x == g.x && c.y == g.y) return true;
       for (int i=0; i<8; i++) {
         int x = c.x + dx[i];
@@ -58,11 +72,13 @@ public:
               !traversable({x, c.y}) ||
               !traversable({x, y})) 
             continue;
-          double w = (c.x == x || c.y == y)? 1: 1.4142;
-          if (dist[id({x, y})] > c.d + w) {
-            dist[id({x, y})] = c.d + w;
+          double w = (c.x == x || c.y == y)? 1: SQRT2;
+          if (dist[id({x, y})] > c.g + w) {
+            dist[id({x, y})] = c.g + w;
             pa[id({x, y})] = id({c.x, c.y});
-            q.push({x, y, c.d+w});
+            Node nxt = {x, y, c.g+w};
+            nxt.h = hVal(nxt, g);
+            q.push(nxt);
           }
         }
       }
