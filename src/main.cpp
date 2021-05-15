@@ -126,6 +126,15 @@ bool parse_argv(int argc, char **argv) {
   return true;
 }
 
+string basename(const string& path) {
+  size_t l = path.find_last_of('/');
+  if (l == string::npos) l = 0;
+  else l += 1;
+  size_t r = path.find_last_of('.');
+  if (r == string::npos) r = path.size()-1;
+  return path.substr(l, r-l);
+}
+
 int main(int argc, char **argv)
 {
 
@@ -139,7 +148,7 @@ int main(int argc, char **argv)
   }
 
   LoadMap(mapfile.c_str(), mapData, width, height);
-  datafile = GetName() + "-" + mapfile;
+  datafile = GetName() + "-" + basename(mapfile);
 
   if (pre)
     PreprocessMap(mapData, width, height, datafile);
