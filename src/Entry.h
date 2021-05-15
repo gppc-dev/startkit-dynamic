@@ -1,13 +1,11 @@
 #pragma once
-#include <stdint.h>
 #include <vector>
 #include <string>
-using namespace std;
 
-struct xyLoc {
-  int16_t x;
-  int16_t y;
-};
+// include common used class in GPPC
+#include "GPPC.h"
+using namespace std;
+typedef GPPC::xyLoc xyLoc;
 
 void PreprocessMap(vector<bool> &bits, int width, int height, const string filename);
 void *PrepareForSearch(vector<bool> &bits, int width, int height, const string filename);
