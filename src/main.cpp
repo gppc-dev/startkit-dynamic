@@ -2,6 +2,7 @@
 #include <numeric>
 #include <algorithm>
 #include <string>
+#include <unistd.h>
 #include <cmath>
 #include <iostream>
 #include "ScenarioLoader.h"
@@ -158,6 +159,11 @@ int main(int argc, char **argv)
 
   void *reference = PrepareForSearch(mapData, width, height, datafile);
 
+	char argument[256];
+	sprintf(argument, "pmap -x %d | tail -n 1 > run.info", getpid());
+  system(argument);
   RunExperiment(reference);
+	sprintf(argument, "pmap -x %d | tail -n 1 >> run.info", getpid());
+  system(argument);
   return 0;
 }

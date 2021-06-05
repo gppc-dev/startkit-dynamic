@@ -37,5 +37,6 @@
 # Generated files
 src/result.csv
 src/run
+src/run.info
 src/run.stderr
 src/run.stdout
