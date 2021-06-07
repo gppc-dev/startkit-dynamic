@@ -35,8 +35,8 @@
 .history
 
 # Generated files
-src/result.csv
-src/run
-src/run.info
-src/run.stderr
-src/run.stdout
+**/result.csv
+**/run
+**/run.info
+**/run.stderr
+**/run.stdout
