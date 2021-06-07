@@ -46,7 +46,7 @@ public:
     return card + diag * SQRT2;
   }
 
-  bool run(int sx, int sy, int gx, int gy, vector<int>& pa) {
+  double run(int sx, int sy, int gx, int gy, vector<int>& pa) {
     priority_queue<Node, vector<Node>, less<Node>> q;
     dist = vector<double>(bits->size(), numeric_limits<double>::max());
     Node g{gx, gy, 0, 0};
@@ -62,7 +62,7 @@ public:
     while (!q.empty()) {
       Node c = q.top(); q.pop();
       if (c.g != dist[id(c)]) continue;
-      if (c.x == g.x && c.y == g.y) return true;
+      if (c.x == g.x && c.y == g.y) return c.g;
       for (int i=0; i<8; i++) {
         int x = c.x + dx[i];
         int y = c.y + dy[i];
@@ -83,6 +83,6 @@ public:
         }
       }
     }
-    return false;
+    return -1;
   }
 };

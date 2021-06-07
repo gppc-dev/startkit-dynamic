@@ -64,12 +64,11 @@ void RunExperiment(void* data) {
 
   string resultfile = "result.csv";
   ofstream fout(resultfile);
-  const string header = "map,scen,experiment_id,path_size,path_length,ref_length,time_cost";
+  const string header = "map,scen,experiment_id,path_size,path_length,ref_length,time_cost,20steps_cost,max_step_time";
 
   fout << header << endl;
   for (int x = 0; x < scen.GetNumExperiments(); x++)
   {
-    bool done;
       xyLoc s, g;
     s.x = scen.GetNthExperiment(x).GetStartX();
     s.y = scen.GetNthExperiment(x).GetStartY();
@@ -77,18 +76,25 @@ void RunExperiment(void* data) {
     g.y = scen.GetNthExperiment(x).GetGoalY();
 
     thePath.clear();
-    t.StartTimer();
-    done = GetPath(data, s, g, thePath);
-    t.EndTimer();
-    double tcost = t.GetElapsedTime();
+    double max_step = 0, tcost = 0, tcost20 = 0;
+    bool done = false;
+    do {
+      t.StartTimer();
+      done = GetPath(data, s, g, thePath);
+      t.EndTimer();
+      max_step = max(max_step, t.GetElapsedTime());
+      tcost += t.GetElapsedTime();
+      if (thePath.size() <= 20) tcost20 += t.GetElapsedTime();
+    } while (!done);
     double plen = done?GetPathLength(thePath): 0;
     double ref_len = scen.GetNthExperiment(x).GetDistance();
 
 
-    fout << mapfile << "," << scenfile       << ","
-         << x       << "," << thePath.size() << ","
-         << plen    << "," << ref_len        << ","
-         << tcost   << endl;
+    fout << mapfile  << "," << scenfile       << ","
+         << x        << "," << thePath.size() << ","
+         << plen     << "," << ref_len        << ","
+         << tcost    << "," << tcost20        << "," 
+         << max_step << endl;
 
     if (check) {
       printf("%d %d %d %d %d", s.x, s.y, g.x, g.y, (int)thePath.size());

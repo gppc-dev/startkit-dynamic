@@ -17,8 +17,8 @@ bool GetPath(void *data, xyLoc s, xyLoc g, vector<xyLoc> &path) {
   int16_t w = astar->width;
 
   vector<int> pa(astar->bits->size(), -1);
-  bool res = astar->run(s.x, s.y, g.x, g.y, pa);
-  if (res) {
+  double d = astar->run(s.x, s.y, g.x, g.y, pa);
+  if (d > 0) {
     int16_t x = g.x, y = g.y;
     while (true) {
       path.push_back({x, y});
@@ -29,7 +29,7 @@ bool GetPath(void *data, xyLoc s, xyLoc g, vector<xyLoc> &path) {
     }
     reverse(path.begin(), path.end());
   }
-  return res;
+  return true;
 }
 
-const string GetName() { return "example"; }
+const string GetName() { return "example-A*"; }

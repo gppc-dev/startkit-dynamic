@@ -1,4 +1,4 @@
-CC       = clang++
+CC       = g++
 CFLAGS   = -W -Wall -O3
 DEVFLAGS = -W -Wall -ggdb -O0
 EXEC     = run
