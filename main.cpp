@@ -1,10 +1,12 @@
 #include <cstdio>
+#include <ios>
 #include <numeric>
 #include <algorithm>
 #include <string>
 #include <unistd.h>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 #include "ScenarioLoader.h"
 #include "Timer.h"
 #include "Entry.h"
@@ -89,6 +91,7 @@ void RunExperiment(void* data) {
     double ref_len = scen.GetNthExperiment(x).GetDistance();
 
 
+    fout << setprecision(5) << fixed;
     fout << mapfile  << "," << scenfile       << ","
          << x        << "," << thePath.size() << ","
          << plen     << "," << ref_len        << ","
