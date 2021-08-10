@@ -14,6 +14,7 @@
 using namespace std;
 
 string datafile, mapfile, scenfile, flag;
+const string index_dir = "index_data";
 vector<bool> mapData;
 int width, height;
 bool pre   = false;
@@ -157,7 +158,7 @@ int main(int argc, char **argv)
   }
 
   LoadMap(mapfile.c_str(), mapData, width, height);
-  datafile = GetName() + "-" + basename(mapfile);
+  datafile = index_dir + "/" + GetName() + "-" + basename(mapfile);
 
   if (pre)
     PreprocessMap(mapData, width, height, datafile);
