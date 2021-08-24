@@ -1,15 +1,53 @@
-
 # TLDR
 
-* Participants push commits to their repository and we will be able to compile, run and evaluate.
+* Participants push commits to their repositories and the server will pull, compile, run and evaluate.
+
+  * participants can add new repo via our web interface 
+  * participants must specify their dependency in `apt.txt` (we provide a sample in `startkit`)
+  * server will build a docker image to compile, run and evaluate submissions
+
+# Problem statement (8-connected grid)
+
+TODO
+
+# Start Kit
+
+For those who using c++ (most of participants), you submission must include following files.
+
+| File name     | Description                                                     | Modifiable |
+| ------------- | --------------------------------------------------------------- | ---------- |
+| `main.cpp`    | define api of executable, compiled to `run`                     | no         |
+| `entry.h`     | define functions prototypes that will be used by `main.cpp`     | no         |
+| `entry.cpp`   | implementations                                                 | yes        |
+| `compile.sh`  | compile your code to executable `run`                           | yes        |
+| `apt.txt`     | define dependency, will be used by server to build docker image | yes        |
+| `Dockerfile`  | define docker image, will be used by server                     | no         |
+
+besides, you will have following generated files
+
+| File name     | Description                                                           | Optional |
+| ------------- | --------------------------------------------------------------------- | -------- |
+| `run`         | compiled executable, will be called in evaluation                     | no       |
+| `run.stdout`  | stdout is redirected to here                                          | no       |
+| `run.stderr`  | stderr id redirected to here                                          | no       |
+| `run.info`    | stores some run time information                                      | no       |
+| `result.csv`  | stores query information, including time cost, path length, etc.      | no       |
+| `index_data/` | if your algorithm has precomputation, all produced data must be here  | yes      |
+
+We provide `A*` in c++ as an example.
+
+For those who using other languages, you may not need to include `*.cpp` and `*.h` files in above table, but others are still required.
+Notice that `run` is a untracked file by default (see in `.gitignore`), if you put code in this file, make sure you also modify the `.gitignore`.
 
 # Details on the server side
 
+For those who **want to build local testing workflow** or **not using c/c++**, this section might be helpful.
+
 ## I/O Setup
 
-* All `stdout` from participant's program are redirected to a file `run.stdout`
+* All `stdout` from program are redirected to a file `run.stdout`
 
-* All `stderr` from participant's are redirected to a file `run.stderr`
+* All `stderr` are redirected to a file `run.stderr`
 
 * The results of benchmark (i.e. `../${exec} -run <map> <scen>`) are written to `result.csv`
 
@@ -32,7 +70,7 @@
 
 ## Evaluation Workflow
 
-### TLDR
+### Overview
 1. Build docker image based on Dockerfile in submission repo.
 2. Start the container in background.
 3. Run pre-processing for debug maps.
@@ -44,7 +82,6 @@
 
 
 ### Details
-
 
 * Setting up environment: 
   * The docker image working directory should be set to the directory where executables are.
