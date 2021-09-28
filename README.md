@@ -6,22 +6,62 @@
   * participants must specify their dependency in `apt.txt` (we provide a sample in `startkit`)
   * server will build a docker image to compile, run and evaluate submissions
 
-# Problem statement (8-connected grid)
+# Problem statement
+Your task is to find a path on a given graph, and the solution is evaluated based on optimality, time performance and space cost.
 
-TODO
+## Definition: Graph
+The input graph is an 8-connected grid map, i.e. each cell (`c`) has 8 adjacent neighbors:
+
+```
+123
+8c4
+765
+```
+the distance to cardinal neighbors (`2,4,6,8`) is 1, the distance to diagonal neighbors (`1,3,5,7`) is `1.4141` (approximated `sqrt(2)`).
+
+Each cell is either traversable or obstacle, **corner cutting is not allowed** , for example:
+```
+c..
+.b.
+a#.
+```
+`#` is an obstacle, `a,b,c` and `.` are traversable cells; `c` to `b` is a valid diagonal move while `a` to `b` is not.
+
+## Definition: Path
+
+For a query `(s, t)`, a valid path is a sequence of nodes `p=(s,v1,...vn,t)`, any adjacent nodes `(a, b)`on the path must be a **valid segment**, i.e. all moves from `a` to `b` must be in same direction, for example:
+
+```
+  01234567
+0 ...b.d..
+1 ........
+2 ...c#...
+3 a.......
+```
+
+* from `a` to `b` needs 3 diagonal moves (`Northeast`), so `(a, b)` is a valid segment;
+* from `a` to `c` needs 1 diagonal move (`Northeast`) and 2 cardinal moves (`East`), so `(a, c)` is not a valid segment;
+* from `c` to `d`, the first diagonal move from `c` is forbidden due to the **no corner-cutting** rule, so `(c, d)` is not a valid segment;
+
+**When start and target are same node, the path must be empty, the length must be `0`.**
 
 # Start Kit
 
 For those who using c++ (most of participants), you submission must include following files.
 
-| File name     | Description                                                     | Modifiable |
-| ------------- | --------------------------------------------------------------- | ---------- |
-| `main.cpp`    | define api of executable, compiled to `run`                     | no         |
-| `entry.h`     | define functions prototypes that will be used by `main.cpp`     | no         |
-| `entry.cpp`   | implementations                                                 | yes        |
-| `compile.sh`  | compile your code to executable `run`                           | yes        |
-| `apt.txt`     | define dependency, will be used by server to build docker image | yes        |
-| `Dockerfile`  | define docker image, will be used by server                     | no         |
+| File name             | Description                                                     | Modifiable |
+| --------------------- | --------------------------------------------------------------- | ---------- |
+| `main.cpp`            | Define api of executable, compiled to `run`                     | no         |
+| `Timer.h`             | Define timer                                                    | no         |
+| `Timer.cpp`           | Define timer                                                    | no         |
+| `ScenarioLoader.h`    | GPPC scenario file parser & loader                              | no         |
+| `ScenarioLoader.cpp`  | GPPC scenario file parser & loader                              | no         |
+| `GPPC.h`              | Common used code for GPPC                                       | no         |
+| `Entry.h`             | Define functions prototypes that will be used by `main.cpp`     | no         |
+| `Entry.cpp`           | Implementations                                                 | yes        |
+| `compile.sh`          | Compile your code to executable `run`                           | yes        |
+| `apt.txt`             | Define dependency, will be used by server to build docker image | yes        |
+| `Dockerfile`          | Define docker image, will be used by server                     | no         |
 
 besides, you will have following generated files
 
@@ -49,7 +89,7 @@ For those who **want to build local testing workflow** or **not using c/c++**, t
 
 * All `stderr` are redirected to a file `run.stderr`
 
-* The results of benchmark (i.e. `../${exec} -run <map> <scen>`) are written to `result.csv`
+* The results of benchmark (i.e. `./${exec} -run <map> <scen>`) are written to `result.csv`
 
 * All these files are in docker, and will backup to server so that we can hide/reveal information to participants.
 
@@ -106,5 +146,5 @@ For those who **want to build local testing workflow** or **not using c/c++**, t
     * `suboptimal`: all paths are valid, but lengths may not optimal
     * `wrong answer`: there are invalid paths
 
-* Running executable for benchmarking: `<prefix> ./run -run $${map_path} ${scenario_path}`
+* Running executable for benchmarking: `<prefix> ./run -run ${map_path} ${scenario_path}`
   * we will track time/memory usage and publish results
