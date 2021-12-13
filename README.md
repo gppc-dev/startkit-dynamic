@@ -1,3 +1,22 @@
+# Grid-Based Path Finding Competition Starter Kit
+
+## About the competition.
+
+The Grid-Based Path Planning Competition (GPPC), begun in 2012, provide a meaningful comparison between many Path Planning approaches that was previously unavilable. 
+Individuals and researchers interested in grid-based path planning are encouraged to enter their code into the competition.
+
+## Competition workflow
+
+From this year, the GPPC competition will running continously until a deadline, and submissions are welcome at any time before deadline. 
+Participants can submit multiple times before the deadline and their submission will be graded automatically.
+
+## Join the competition
+
+Login the [competition website]() with a github account, and we will automatically create an private code repo for you. 
+The repo will be the place that you submit codes to.
+
+## Make a submission
+
 # TLDR
 
 * Participants push commits to their repositories and the server will pull, compile, run and evaluate.
