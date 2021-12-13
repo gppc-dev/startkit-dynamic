@@ -12,10 +12,15 @@ Participants can submit multiple times before the deadline and their submission 
 
 ## Join the competition
 
-Login the [competition website]() with a github account, and we will automatically create an private code repo for you. 
-The repo will be the place that you submit codes to.
+Login the [competition website]() with a github account, and we will automatically create an private github repo for you. 
+The repo will be the place that you submit codes to. You can click "My Repo" to open your github repo page.
 
 ## Make a submission
+
+Clone the starter kit. 
+```
+$ git clone https://github.com/gppc-dev/startkit.git
+```
 
 # TLDR
 
