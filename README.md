@@ -15,16 +15,23 @@ Participants can submit multiple times before the deadline and their submission 
 Login the [competition website]() with a github account, and we will automatically create an private github repo for you. 
 The repo will be the place that you submit codes to. You can click "My Repo" to open your github repo page.
 
-## Make a submission
+## Make your first submission
 
-Clone the starter kit. 
+Clone the starter kit, which includes a basic sample implementation. 
 ```
 $ git clone https://github.com/gppc-dev/startkit.git
+$ cd startkit
 ```
+Add your competition private repo to the startkit local repo.
+```
+$ git remote add contest_server git@github.com:your_repo_address
+$ git push contest_server
+```
+Finally click "Evaluate my codes" button on the competition website!
 
 # TLDR
 
-* Participants push commits to their repositories and the server will pull, compile, run and evaluate.
+* Participants push commits to their repositories and the server will pull, compile, run and evaluate the current head of the main branch.
 
   * participants can add new repo via our web interface 
   * participants must specify their dependency in `apt.txt` (we provide a sample in `startkit`)
