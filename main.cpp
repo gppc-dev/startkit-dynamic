@@ -80,13 +80,15 @@ void RunExperiment(void* data) {
     thePath.clear();
     double max_step = 0, tcost = 0, tcost20 = 0;
     bool done = false;
+    int call_num = 0;
     do {
       t.StartTimer();
       done = GetPath(data, s, g, thePath);
       t.EndTimer();
       max_step = max(max_step, t.GetElapsedTime());
       tcost += t.GetElapsedTime();
-      if (thePath.size() <= 20) tcost20 += t.GetElapsedTime();
+      if (thePath.size() <= 20 || call_num == 0) tcost20 += t.GetElapsedTime();
+      call_num++;
     } while (!done);
     double plen = done?GetPathLength(thePath): 0;
     double ref_len = scen.GetNthExperiment(x).GetDistance();
