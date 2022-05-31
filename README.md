@@ -2,12 +2,12 @@
 
 ## About the competition.
 
-The Grid-Based Path Planning Competition (GPPC), begun in 2012, provide a meaningful comparison between many Path Planning approaches that was previously unavilable. 
+The Grid-Based Path Planning Competition (GPPC), begun in 2012, provide a meaningful comparison between many Path Planning approaches that was previously unavailable. 
 Individuals and researchers interested in grid-based path planning are encouraged to enter their code into the competition.
 
 ## Competition workflow
 
-From this year, the GPPC competition will running continously until a deadline, and submissions are welcome at any time before deadline. 
+From this year, the GPPC competition will running continuously until a deadline, and submissions are welcome at any time before deadline. 
 Participants can submit multiple times before the deadline and their submission will be graded automatically.
 
 ## Join the competition
@@ -41,7 +41,9 @@ Finally click "Evaluate my codes" button on the competition website!
 Your task is to find a path on a given graph, and the solution is evaluated based on optimality, time performance and space cost.
 
 ## Definition: Graph
-The input graph is an 8-connected grid map, i.e. each cell (`c`) has 8 adjacent neighbors:
+The input graph is an `h*w` 8-connected grid map, i.e. the map is represented by `h` row strings and each row has `w` characters.
+The character at location `(x, y)` (row y, column x) represents the traversability of the cell, where `.` means traversable and any of `SWT@O` means untraversable.
+Each cell (`c`) has 8 adjacent neighbors:
 
 ```
 123
@@ -54,9 +56,11 @@ Each cell is either traversable or obstacle, **corner cutting is not allowed** ,
 ```
 c..
 .b.
-a#.
+a@.
 ```
-`#` is an obstacle, `a,b,c` and `.` are traversable cells; `c` to `b` is a valid diagonal move while `a` to `b` is not.
+`@` is an obstacle, `a,b,c` and `.` are traversable cells; `c` to `b` is a valid diagonal move while `a` to `b` is not.
+
+It is not necessary to implement the map parser, the `LoadMap` function in the `main.cpp` file does this for you, it reads the path of map and parses into a bit vector.
 
 ## Definition: Path
 
