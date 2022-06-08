@@ -9,7 +9,7 @@ using namespace std;
 
 class Astar {
 
-const double SQRT2 = 1.4141;
+const double SQRT2 = sqrt(2);
 
 struct Node {
   int x, y;
