@@ -5,11 +5,15 @@
 #include <vector>
 #include <math.h>
 #include <map>
+#include <algorithm>
+#include "GPPC.h"
 using namespace std;
+typedef GPPC::xyLoc xyLoc;
 
 class Astar {
 
 const double SQRT2 = sqrt(2);
+int search_id;
 
 struct Node {
   int x, y;
@@ -24,13 +28,26 @@ struct Node {
   }
 };
 
+struct LazyDist {
+  int sid;
+  double g;
+};
+
 public:
   const vector<bool>* bits; // grid map
   int width, height;
-  vector<double> dist;
+  vector<LazyDist> dist;
+  vector<int> pa;
+  // vector<double> dist;
+  // vector<int> pa;
+  priority_queue<Node, vector<Node>, less<Node>> q;
 
   Astar(const vector<bool>* mapData, int w, int h): 
-    bits(mapData), width(w), height(h) {};
+    bits(mapData), width(w), height(h) {
+      dist = vector<LazyDist>(bits->size(), {0, numeric_limits<double>::max()});
+      pa = vector<int>(bits->size(), -1);
+      search_id = 0;
+    };
 
   inline int id(const Node&loc) const {
     return loc.y * width + loc.x;
@@ -46,14 +63,15 @@ public:
     return card + diag * SQRT2;
   }
 
-  double run(int sx, int sy, int gx, int gy, vector<int>& pa) {
-    priority_queue<Node, vector<Node>, less<Node>> q;
-    dist = vector<double>(bits->size(), numeric_limits<double>::max());
+  double run(int sx, int sy, int gx, int gy) {
+    ++search_id;
+    // std pq has no clear operation
+    q = priority_queue<Node, vector<Node>, less<Node>>();
     Node g{gx, gy, 0, 0};
     Node s{sx, sy, 0, 0};
     s.h = hVal(s, g);
 
-    dist[id(s)] = 0;
+    dist[id(s)] = {search_id, 0};
     pa[id(s)] = -1;
     q.push(s);
 
@@ -61,7 +79,7 @@ public:
     const int dy[] = {1, -1, 0, 0, 1, -1, -1, 1};
     while (!q.empty()) {
       Node c = q.top(); q.pop();
-      if (c.g != dist[id(c)]) continue;
+      if (dist[id(c)].sid == search_id && c.g != dist[id(c)].g) continue;
       if (c.x == g.x && c.y == g.y) return c.g;
       for (int i=0; i<8; i++) {
         int x = c.x + dx[i];
@@ -73,8 +91,8 @@ public:
               !traversable({x, y})) 
             continue;
           double w = (c.x == x || c.y == y)? 1: SQRT2;
-          if (dist[id({x, y})] > c.g + w) {
-            dist[id({x, y})] = c.g + w;
+          if (dist[id({x, y})].sid != search_id || dist[id({x, y})].g > c.g + w) {
+            dist[id({x, y})] = {search_id, c.g + w};
             pa[id({x, y})] = id({c.x, c.y});
             Node nxt = {x, y, c.g+w};
             nxt.h = hVal(nxt, g);
@@ -84,5 +102,22 @@ public:
       }
     }
     return -1;
+  }
+
+  void get_path(xyLoc s, xyLoc g, vector<xyLoc> &path) {
+    int16_t w = width;
+    double d = run(s.x, s.y, g.x, g.y);
+    path.clear();
+    if (d > 0) {
+      int16_t x = g.x, y = g.y;
+      while (true) {
+        path.push_back({x, y});
+        if (x == s.x && y == s.y) break;
+        int cid = y * w + x;
+        x = pa[cid] % w;
+        y = pa[cid] / w;
+      }
+      reverse(path.begin(), path.end());
+    }
   }
 };
