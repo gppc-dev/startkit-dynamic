@@ -1,33 +1,13 @@
 # Grid-Based Path Finding Competition Starter Kit
 
-## About the competition.
+## Submission Instruction
 
-The Grid-Based Path Planning Competition (GPPC), begun in 2012, provide a meaningful comparison between many Path Planning approaches that was previously unavailable. 
-Individuals and researchers interested in grid-based path planning are encouraged to enter their code into the competition.
+Read the [Submission_Instruction.md](https://github.com/gppc-dev/startkit/blob/master/Submission_Instruction.md).
 
-## Competition workflow
+## Problem Definition
 
-From this year, the GPPC competition will running continuously until a deadline, and submissions are welcome at any time before deadline. 
-Participants can submit multiple times before the deadline and their submission will be graded automatically.
+Read the [Problem_Definition.md](https://github.com/gppc-dev/startkit/blob/master/Problem_Definition.md).
 
-## Join the competition
-
-Login the [competition website]() with a github account, and we will automatically create an private github repo for you. 
-The repo will be the place that you submit codes to. You can click "My Repo" to open your github repo page.
-
-## Make your first submission
-
-Clone the starter kit, which includes a basic sample implementation. 
-```
-$ git clone https://github.com/gppc-dev/startkit.git
-$ cd startkit
-```
-Add your competition private repo to the startkit local repo.
-```
-$ git remote add contest_server git@github.com:your_repo_address
-$ git push contest_server
-```
-Finally click "Evaluate my codes" button on the competition website!
 
 # TLDR
 
@@ -36,49 +16,6 @@ Finally click "Evaluate my codes" button on the competition website!
   * participants can add new repo via our web interface 
   * participants must specify their dependency in `apt.txt` (we provide a sample in `startkit`)
   * server will build a docker image to compile, run and evaluate submissions
-
-# Problem statement
-Your task is to find a path on a given graph, and the solution is evaluated based on optimality, time performance and space cost.
-
-## Definition: Graph
-The input graph is an `h*w` 8-connected grid map, i.e. the map is represented by `h` row strings and each row has `w` characters.
-The character at location `(x, y)` (row y, column x) represents the traversability of the cell, where `.` means traversable and any of `SWT@O` means untraversable.
-Each cell (`c`) has 8 adjacent neighbors:
-
-```
-123
-8c4
-765
-```
-the distance to cardinal neighbors (`2,4,6,8`) is 1, the distance to diagonal neighbors (`1,3,5,7`) is `1.4141` (approximated `sqrt(2)`).
-
-Each cell is either traversable or obstacle, **corner cutting is not allowed** , for example:
-```
-c..
-.b.
-a@.
-```
-`@` is an obstacle, `a,b,c` and `.` are traversable cells; `c` to `b` is a valid diagonal move while `a` to `b` is not.
-
-It is not necessary to implement the map parser, the `LoadMap` function in the `main.cpp` file does this for you, it reads the path of map and parses into a bit vector.
-
-## Definition: Path
-
-For a query `(s, t)`, a valid path is a sequence of nodes `p=(s,v1,...vn,t)`, any adjacent nodes `(a, b)`on the path must be a **valid segment**, i.e. all moves from `a` to `b` must be in same direction, for example:
-
-```
-  01234567
-0 ...b.d..
-1 ........
-2 ...c#...
-3 a.......
-```
-
-* from `a` to `b` needs 3 diagonal moves (`Northeast`), so `(a, b)` is a valid segment;
-* from `a` to `c` needs 1 diagonal move (`Northeast`) and 2 cardinal moves (`East`), so `(a, c)` is not a valid segment;
-* from `c` to `d`, the first diagonal move from `c` is forbidden due to the **no corner-cutting** rule, so `(c, d)` is not a valid segment;
-
-**When start and target are same node, the path must be empty, the length must be `0`.**
 
 # Start Kit
 
