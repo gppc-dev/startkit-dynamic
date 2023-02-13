@@ -10,6 +10,7 @@
 #include "ScenarioLoader.h"
 #include "Timer.h"
 #include "Entry.h"
+#include "validator/ValidatePath.hpp"
 
 using namespace std;
 
@@ -59,6 +60,12 @@ double GetPathLength(const vector<xyLoc>& path)
   return len;
 }
 
+// returns -1 if valid path, otherwise id of segment where invalidness was detetcted
+int ValidatePath(const vector<xyLoc>& thePath)
+{
+  return inx::ValidatePath(mapData, width, height, thePath);
+}
+
 void RunExperiment(void* data) {
   Timer t;
   ScenarioLoader scen(scenfile.c_str());
@@ -103,7 +110,14 @@ void RunExperiment(void* data) {
          << max_step.count() << endl;
 
     if (check) {
-      printf("%d %d %d %d %d", s.x, s.y, g.x, g.y, (int)thePath.size());
+      printf("%d %d %d %d", s.x, s.y, g.x, g.y);
+      int validness = ValidatePath(thePath);
+      if (validness < 0) {
+        printf(" valid");
+      } else {
+        printf(" invalid-%d", validness);
+      }
+      printf(" %d", static_cast<int>(thePath.size()));
       for (const auto& it: thePath) {
         printf(" %d %d", it.x, it.y);
       }
@@ -160,6 +174,7 @@ int main(int argc, char **argv)
     exit(1);
   }
 
+  // in mapData, 1: traversable, 0: obstacle
   LoadMap(mapfile.c_str(), mapData, width, height);
   datafile = index_dir + "/" + GetName() + "-" + basename(mapfile);
 
@@ -171,11 +186,11 @@ int main(int argc, char **argv)
 
   void *reference = PrepareForSearch(mapData, width, height, datafile);
 
-	char argument[256];
-	sprintf(argument, "pmap -x %d | tail -n 1 > run.info", getpid());
+  char argument[256];
+  sprintf(argument, "pmap -x %d | tail -n 1 > run.info", getpid());
   system(argument);
   RunExperiment(reference);
-	sprintf(argument, "pmap -x %d | tail -n 1 >> run.info", getpid());
+  sprintf(argument, "pmap -x %d | tail -n 1 >> run.info", getpid());
   system(argument);
   return 0;
 }
