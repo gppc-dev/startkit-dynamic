@@ -45,10 +45,10 @@ void LoadMap(const char *fname, vector<bool> &map, int &width, int &height)
   }
 }
 
-double octaile_dist(const xyLoc& a, const xyLoc& b) {
+double euclidean_dist(const xyLoc& a, const xyLoc& b) {
   int dx = abs(b.x - a.x);
   int dy = abs(b.y - a.y);
-  double res = min(dx, dy) * sqrt(2) + (dx + dy - 2 * min(dx, dy));
+  double res = sqrt(dx * dx + dy * dy);
   return res;
 }
 
@@ -56,7 +56,7 @@ double GetPathLength(const vector<xyLoc>& path)
 {
   double len = 0;
   for (int x = 0; x < (int)path.size()-1; x++)
-    len += octaile_dist(path[x], path[x+1]);
+    len += euclidean_dist(path[x], path[x+1]);
   return len;
 }
 
