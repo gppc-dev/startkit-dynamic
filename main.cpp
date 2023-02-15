@@ -106,6 +106,14 @@ void RunExperiment(void* data) {
          << plen     << "," << ref_len        << ","
          << tcost.count() << "," << tcost20.count() << "," 
          << max_step.count() << std::endl;
+    
+    // do basic check and print to stderr if problem
+    for (int i = 0, ie = static_cast<int>(thePath.size()); i < ie; ++i) {
+      xyLoc pos = thePath[i];
+      if (pos.x < 0 || pos.x >= width || pos.y < 0 || pos.y >= height) {
+        std::fprintf(stderr, "Scenario %d point %d out-of-bounds (%d,%d)\n", x, i, static_cast<int>(pos.x), static_cast<int>(pos.y));
+      }
+    }
 
     if (check) {
       std::printf("%d %d %d %d", s.x, s.y, g.x, g.y);

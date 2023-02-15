@@ -53,7 +53,7 @@ public:
 		if (uv.x == 0) {
 			cardinals = true;
 			if (uv.y == 0) // u = v
-				return false;
+				return true;
 			// hori line
 			diff = Point{0, uv.y > 0 ? 1 : -1};
 		} else if (uv.y == 0) {
