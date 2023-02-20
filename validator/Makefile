@@ -9,8 +9,8 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 all:
-	$(CXX) $(CXXFLAGS) -fPIC $(shell python3 -m pybind11 --includes)  pyVlidatePath.cpp -o Grid_Path_Checker$(shell python3-config --extension-suffix)
+	$(CXX) $(CXXFLAGS) -fPIC $(shell python3 -m pybind11 --includes)  pyValidatePath.cpp -o Grid_Path_Checker$(shell python3-config --extension-suffix)
 
 dev:
-	$(CXX) $(DEVFLAGS) -fPIC $(shell python3 -m pybind11 --includes)  pyVlidatePath.cpp -o Grid_Path_Checker$(shell python3-config --extension-suffix)
+	$(CXX) $(DEVFLAGS) -fPIC $(shell python3 -m pybind11 --includes)  pyValidatePath.cpp -o Grid_Path_Checker$(shell python3-config --extension-suffix)
 
