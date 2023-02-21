@@ -113,6 +113,14 @@ void RunExperiment(void* data) {
       if (pos.x < 0 || pos.x >= width || pos.y < 0 || pos.y >= height) {
         std::fprintf(stderr, "Scenario %d point %d out-of-bounds (%d,%d)\n", x, i, static_cast<int>(pos.x), static_cast<int>(pos.y));
       }
+      if (i+1 != ie) {
+        xyLoc pos2 = thePath[i+1];
+        xyLoc pos3 = pos2; pos3.x -= pos.x; pos3.y -= pos.y;
+        if ( !(pos3.x == 0 || pos3.y == 0 || std::abs(pos3.x) == std::abs(pos3.y)) ) {
+          std::fprintf(stderr, "Scenario %d segment %d must be cardinal or ordinal in direction (%d,%d)-(%d,%d)\n", x, i,
+            static_cast<int>(pos.x), static_cast<int>(pos.y), static_cast<int>(pos2.x), static_cast<int>(pos2.y));
+        }
+      }
     }
 
     if (check) {
