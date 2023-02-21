@@ -8,7 +8,6 @@ Read the [Submission_Instruction.md](https://github.com/gppc-dev/startkit/blob/m
 
 Read the [Problem_Definition.md](https://github.com/gppc-dev/startkit/blob/master/Problem_Definition.md).
 
-
 # TLDR
 
 * Participants push commits to their repositories and the server will pull, compile, run and evaluate the current head of the main branch.
