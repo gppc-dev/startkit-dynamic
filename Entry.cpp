@@ -63,7 +63,6 @@ void *PrepareForSearch(const std::vector<bool> &bits, int width, int height, con
  *          if `false` then `GetPath` will be called again until search is complete.
  */
 bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path) {
-
   Astar* astar = (Astar*)(data);
   int16_t w = astar->width;
   astar->get_path(s, g, path);

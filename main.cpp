@@ -104,7 +104,7 @@ void RunExperiment(void* data) {
     fout << mapfile  << "," << scenfile       << ","
          << x        << "," << thePath.size() << ","
          << plen     << "," << ref_len        << ","
-         << tcost.count() << "," << tcost20.count() << "," 
+         << tcost.count() << "," << tcost20.count() << ","
          << max_step.count() << std::endl;
     
     // do basic check and print to stderr if problem
