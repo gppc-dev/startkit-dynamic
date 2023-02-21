@@ -8,7 +8,6 @@ Read the [Submission_Instruction.md](https://github.com/gppc-dev/startkit/blob/m
 
 Read the [Problem_Definition.md](https://github.com/gppc-dev/startkit/blob/master/Problem_Definition.md).
 
-
 # TLDR
 
 * Participants push commits to their repositories and the server will pull, compile, run and evaluate the current head of the main branch.
@@ -33,14 +32,14 @@ For those who using c++ (most of participants), you submission must include foll
 | `Entry.cpp`           | Implementations                                                 | yes        |
 | `compile.sh`          | Compile your code to executable `run`                           | yes        |
 | `apt.txt`             | Define dependency, will be used by server to build docker image | yes        |
-| `Dockerfile`          | Define docker image, will be used by server                     | no         |
+
 
 besides, you will have following generated files
 
 | File name     | Description                                                           | Optional |
 | ------------- | --------------------------------------------------------------------- | -------- |
 | `run`         | compiled executable, will be called in evaluation                     | no       |
-| `run.stdout`  | stdout is redirected to here                                          | no       |
+| `run.stdout`  | stdout is redirected to here. Computed paths goes to stdout for validation.                                          | no       |
 | `run.stderr`  | stderr id redirected to here                                          | no       |
 | `run.info`    | stores some run time information                                      | no       |
 | `result.csv`  | stores query information, including time cost, path length, etc.      | no       |
@@ -51,19 +50,30 @@ We provide `A*` in c++ as an example.
 For those who using other languages, you may not need to include `*.cpp` and `*.h` files in above table, but others are still required.
 Notice that `run` is a untracked file by default (see in `.gitignore`), if you put code in this file, make sure you also modify the `.gitignore`.
 
+## Your Implementation
+* Implement `PreprocessMap`, `PrepareForSearch`, and `GetPath` functions in `Entry.cpp`. See examples and detailed documentations in `Entry.cpp`.
+* Specify your dependency packages in `apt.txt`. The packages must be avaliable for installation through `apt-get` on Ubuntu 22.
+* Modify `compile.sh` and make sure your code can be compiled by execuating this script.
+
+## Run the Program
+* `./run -pre <map> none` Run in preprocessing mode. The program should preprocess the given map and store the preprocessing data under `index_data/`.
+* `./run -check <map> <scen>` Run in validation mode. The output will validated by a validator. Each entry of the `run.stdout` will be marked as `valid` or `invalid-i`, where `i` indicate which segment of the path is invalid. 
+* `./run -run <map> <scen>` Run in benchmark mode. The benchmark results are written to `result.csv`.
+
 # Details on the server side
 
 For those who **want to build local testing workflow** or **not using c/c++**, this section might be helpful.
 
 ## I/O Setup
 
-* All `stdout` from program are redirected to a file `run.stdout`
+* All `stdout` from program are redirected to a file `run.stdout`. Your codes should not print any debug info to `stdout`.  
 
 * All `stderr` are redirected to a file `run.stderr`
 
-* The results of benchmark (i.e. `./${exec} -run <map> <scen>`) are written to `result.csv`
+* The results of benchmark (i.e. `./run -run <map> <scen>`) are written to `result.csv`
 
 * All these files are in docker, and will backup to server so that we can hide/reveal information to participants.
+
 
 ## Execution Setup
 
@@ -83,7 +93,7 @@ For those who **want to build local testing workflow** or **not using c/c++**, t
 ## Evaluation Workflow
 
 ### Overview
-1. Build docker image based on Dockerfile in submission repo.
+1. Build docker image based on the apt.txt in submission repo.
 2. Start the container in background.
 3. Run pre-processing for debug maps.
 4. Run validation for debug scenarios.
@@ -93,30 +103,41 @@ For those who **want to build local testing workflow** or **not using c/c++**, t
 8. Submit final result.
 
 
-### Details
+# Test Your Implementation in a Docker Environment
 
-* Setting up environment: 
-  * The docker image working directory should be set to the directory where executables are.
+* Install latest docker release on your machine [https://docs.docker.com/engine/install/](https://docs.docker.com/engine/install/).
+
+* Setting up environment using `RunInDocker.sh`:
+  * In the root of your code base, run command `./RunInDocker.sh`. This script will automatually generate a Dockerfile the build the docker image.
+  * It will copy your codes to the Docker Environment, install dependencies listed in `apt.txt` using apt-get, and compile your code using `compile.sh`.
+  * You are inside the docker container when the script finishes.
+  * You can run the compiled program in side docker container now.
+  * The docker image name `<image name>` is `gppc_image` and the container name `<container name>` is `gppc_test`.
+  * Exit the container with command: `exit`.
+* Or you also can set up environment manually: 
+  * Prepare your Dockerfile which uses `ubuntu:jammy` as the base image.
+  * The docker image working directory should be set to the directory where executables are. The docker image should copy user implementation into the image.
   * `docker build -t <image name> <dockerfile>`: build docker image based on a default/user-defined dockerfile.
   * Building executable:
     * The dockerfile include a RUN command that running a user provided compile script `./compile.sh` to build executable.
-  * `docker run -d --name <container name> <image name> ...`: start the container in background
+  * `docker run -it --name <container name> <image name>`: start the container interactively.
 
+* Start an existing container:
+  * In background: `docker container start <container name>`
+  * Interactively: `docker container start -i <container name>`
 
-* All following commands are running in docker, and have prefix: `docker container exec <container name>`
+* Whe docker container is started in background, you can run commands from the outside of the docker container (treat docker container as execuatable).
+  
+  * Use prefix: `docker container exec <container name>` for all following commands
+  
+  * Running preprocessing:
+    * `<prefix> ./run -pre ${map_path} none`: run user provided preprocessing codes.
 
-* Running preprocessing:
-  * `<prefix> ./run -pre ${map_path} none`: run user provided preprocessing script
-  * To discuss: user can read none/part/full outputs?
+  * Running executable with validator
+    * `<prefix> ./run -check ${map_path} ${scenario_path} `
+    * With `-check` flag, the output will validated by a validator. Each entry of the output will be marked as `valid` or `invalid-i`, where `i` indicate which segment of the path is invalid. 
 
-* Running executable with validator
-  * `<prefix> ./run -check ${map_path} ${scenario_path} `
-  * if the execution not failed, we will send output to our `validator`, otherwise see in [Execution Setup](##execution-setup)
-  * the `validator` read from `stdout` file and show verdict message to participants
-  * `validator` produces 3 types of verdicts: 
-    * `correct`: all paths are valid and lengths are optimal
-    * `suboptimal`: all paths are valid, but lengths may not optimal
-    * `wrong answer`: there are invalid paths
-
-* Running executable for benchmarking: `<prefix> ./run -run ${map_path} ${scenario_path}`
-  * we will track time/memory usage and publish results
+  * Running executable for benchmarking: `<prefix> ./run -run ${map_path} ${scenario_path}`
+    * we will track time/memory usage and publish results
+  
+  * All outputs are stored inside the container. You could copy files from docker container. For example: `docker cp gppc_test:/GPPC2021/codes/run.stdout ./run.stdout`, which copies `run.stdout` to your current working directory.
