@@ -29,6 +29,8 @@ $ git push origin
 If your implementation support multi-thread preprocessing, tick the "My Entry Support Multi-thread Preprocessing" option.
 If ticked, the preprocessing server will assign 4 CPUs for preprocessing (otherwise only 1 CPU is assigned).
 
+You can evaulate a specific branch under "Evaluate the Branch", this allows for different algorithms or variant features.
+
 Then click the "Evaluate my codes" button on the competition website to evaluate your new submission.
 
 ## Track evaluation progress and history submission
