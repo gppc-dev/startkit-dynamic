@@ -18,7 +18,7 @@ Read the [Problem_Definition.md](https://github.com/gppc-dev/startkit-classic/bl
 
 # Start Kit
 
-For those who using c++ (most participants), your submission must include the following files.
+For those who using c++ (most participants), your submission must include the following files:
 
 | File name             | Description                                                     | Modifiable |
 | --------------------- | --------------------------------------------------------------- | ---------- |
@@ -34,8 +34,7 @@ For those who using c++ (most participants), your submission must include the fo
 | `compile.sh`          | Compile your code to executable `run`                           | yes        |
 | `apt.txt`             | Define dependency, will be used by server to build docker image | yes        |
 
-
- you will have following generated files
+Your program may generated the following files:
 
 | File name     | Description                                                                  | Optional |
 | ------------- | ---------------------------------------------------------------------------- | -------- |
