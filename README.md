@@ -1,12 +1,16 @@
 # Grid-Based Path Finding Competition Starter Kit
 
+## Grid Track
+
+Website [https://gppc.search-conference.org/grid](https://gppc.search-conference.org/grid)
+
 ## Submission Instruction
 
-Read the [Submission_Instruction.md](https://github.com/gppc-dev/startkit-anyangle/blob/master/Submission_Instruction.md).
+Read the [Submission_Instruction.md](https://github.com/gppc-dev/startkit-anyangle/blob/master/Submission_Instruction.md)
 
 ## Problem Definition
 
-Read the [Problem_Definition.md](https://github.com/gppc-dev/startkit-classic/blob/master/Problem_Definition.md).
+Read the [Problem_Definition.md](https://github.com/gppc-dev/startkit-classic/blob/master/Problem_Definition.md)
 
 # TLDR
 
