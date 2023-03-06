@@ -37,8 +37,8 @@ For those who using c++ (most participants), your submission must include the fo
 
  you will have following generated files
 
-| File name     | Description                                                           | Optional |
-| ------------- | --------------------------------------------------------------------- | -------- |
+| File name     | Description                                                                  | Optional |
+| ------------- | ---------------------------------------------------------------------------- | -------- |
 | `run`         | compiled executable, will be called in evaluation                            | no       |
 | `run.stdout`  | stdout is redirected to here. Computed paths goes to stdout for validation.  | no       |
 | `run.stderr`  | stderr redirected to here                                                    | no       |
