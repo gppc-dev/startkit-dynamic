@@ -30,6 +30,7 @@ For those who using c++ (most participants), your submission must include the fo
 | `GPPC.h`              | Commonly used code for GPPC                                     | no         |
 | `Entry.h`             | Define functions prototypes that will be used by `main.cpp`     | no         |
 | `validator/*`         | Validator code                                                  | no         |
+| `version.txt`         | Startkit version                                                | no         |
 | `Entry.cpp`           | Implementations                                                 | yes        |
 | `compile.sh`          | Compile your code to executable `run`                           | yes        |
 | `apt.txt`             | Define dependency, will be used by server to build docker image | yes        |
