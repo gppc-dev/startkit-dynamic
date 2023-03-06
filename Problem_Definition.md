@@ -14,7 +14,7 @@ Each cell is either traversable or obstacle, **corner cutting is not allowed**:
 
 ## Definition: Path
 
-For a query `(s, t)`, a valid path is a sequence of nodes `p=<s,v1,...vn,t>`, any adjacent nodes `(a, b)`on the path must be a **valid segment**, i.e. strictly in a cardinal or ordinal direction, for example:
+For a query `<s, t>`, a valid path is a sequence of nodes `p=<s,v1,...vn,t>`, any adjacent nodes `<a, b>`on the path must be a **valid segment**, i.e. strictly in a cardinal or ordinal direction, for example:
 
 <img src="./figs/exp-1.png" width="512" height="256">
 
