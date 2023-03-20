@@ -12,7 +12,6 @@
 #include <vector>
 #include <cstring>
 #include <string>
-using std::string;
 
 static const int kNoScaling = -1;
 
@@ -23,9 +22,9 @@ class ScenarioLoader;
 
 class Experiment {
 public:
-	Experiment(int sx,int sy,int gx,int gy,int b, double d, string m)
+	Experiment(int sx,int sy,int gx,int gy,int b, double d, std::string m)
     :startx(sx),starty(sy),goalx(gx),goaly(gy),scaleX(kNoScaling),scaleY(kNoScaling),bucket(b),distance(d),map(m){}
-	Experiment(int sx,int sy,int gx,int gy,int sizeX, int sizeY,int b, double d, string m)
+	Experiment(int sx,int sy,int gx,int gy,int sizeX, int sizeY,int b, double d, std::string m)
     :startx(sx),starty(sy),goalx(gx),goaly(gy),scaleX(sizeX),scaleY(sizeY),bucket(b),distance(d),map(m){}
 	int GetStartX() const {return startx;}
 	int GetStartY() const {return starty;}
@@ -45,7 +44,7 @@ private:
 	int scaleY;
 	int bucket;
 	double distance;
-	string map;
+	std::string map;
 };
 
 /** A class which loads and stores scenarios from files.  
