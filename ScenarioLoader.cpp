@@ -11,7 +11,6 @@ using std::ifstream;
 using std::ofstream;
 
 #include "ScenarioLoader.h"
-#include <assert.h>
 
 /** 
  * Loads the experiments from the scenario file. 
@@ -22,7 +21,7 @@ ScenarioLoader::ScenarioLoader(const char* fname)
   ifstream sfile(fname,std::ios::in);
   
   float ver;
-  string first;
+  std::string first;
   sfile>>first;
 
   // Check if a version number is given
@@ -36,7 +35,7 @@ ScenarioLoader::ScenarioLoader(const char* fname)
 
   int sizeX = 0, sizeY = 0; 
   int bucket;
-  string map;  
+  std::string map;  
   int xs, ys, xg, yg;
   double dist;
 
@@ -55,7 +54,6 @@ ScenarioLoader::ScenarioLoader(const char* fname)
   }
   else{
     printf("Invalid version number.\n");
-    //assert(0);
   }
 }
 

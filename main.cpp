@@ -91,7 +91,7 @@ void RunExperiment(void* data) {
       t.StartTimer();
       done = GetPath(data, s, g, thePath);
       t.EndTimer();
-      max_step = max(max_step, t.GetElapsedTime());
+      max_step = std::max(max_step, t.GetElapsedTime());
       tcost += t.GetElapsedTime(); 
       if (thePath.size() <= 20 || call_num == 0) tcost20 += t.GetElapsedTime();
       call_num++;
