@@ -99,7 +99,7 @@ public:
 private:
 	bool validCardinal(Point u, Point v, Point diff) const noexcept
 	{
-		for (Point x = u, xe = v + diff; x != xe; x = x + diff) {
+		for (Point x = u; x != v; x = x + diff) {
 			if (!get(x))
 				return false;
 		}
