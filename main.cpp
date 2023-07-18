@@ -205,14 +205,14 @@ std::string basename(const std::string& path) {
 int main(int argc, char **argv)
 {
 
-  // redirect stdout to file
-  std::freopen("run.stdout", "w", stdout);
-  std::freopen("run.stderr", "w", stderr);
-
   if (!parse_argv(argc, argv)) {
     print_help(argv);
     return 1;
   }
+
+  // redirect stdout to file
+  std::freopen("run.stdout", "w", stdout);
+  std::freopen("run.stderr", "w", stderr);
 
   // in mapData, 1: traversable, 0: obstacle
   LoadMap(mapfile.c_str(), mapData, width, height);
