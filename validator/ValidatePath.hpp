@@ -126,8 +126,12 @@ private:
 template <typename PathContainer>
 int ValidatePath(const std::vector<bool>& map, int width, int height, const PathContainer& thePath)
 {
-	PathValidator validator(map, width, height);
 	size_t S = static_cast<size_t>(thePath.size());
+	if (S == 0)
+		return -1;
+	if (S == 1)
+		return 0;
+	PathValidator validator(map, width, height);
 	// check each point in path
 	for (size_t i = 0; i < S; ++i) {
 		Point u{static_cast<int>(thePath[i].x), static_cast<int>(thePath[i].y)};
