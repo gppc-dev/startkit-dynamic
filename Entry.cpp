@@ -21,7 +21,7 @@ SOFTWARE.
 */
 
 #include "Entry.h"
-#include "Astar.h"
+#include "BaselineSearch.hxx"
 
 
 /**
@@ -59,8 +59,8 @@ void PreprocessMap(const std::vector<bool> &bits, int width, int height, const s
  * @returns Pointer to data-structure used for search.  Memory should be stored on heap, not stack.
  */
 void *PrepareForSearch(const std::vector<bool> &bits, int width, int height, const std::string &filename) {
-  Astar* astar = new Astar(&bits, width, height);
-  return astar;
+  auto* STS = new baseline::SpanningTreeSearch(bits, width, height);
+  return STS;
 }
 
 /**
@@ -83,8 +83,45 @@ void *PrepareForSearch(const std::vector<bool> &bits, int width, int height, con
  *          if `false` then `GetPath` will be called again until search is complete.
  */
 bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path) {
-  Astar* astar = (Astar*)(data);
-  astar->get_path(s, g, path);
+  auto* STS = static_cast<baseline::SpanningTreeSearch*>(data);
+  path.clear();
+  if (s.x == g.x && s.y == g.y) {
+    if (STS->get(baseline::Point(s.x, s.y))) {
+      path.push_back(s);
+      path.push_back(s);
+    }
+    return true;
+  }
+  bool exists = STS->search(baseline::Point(s.x, s.y), baseline::Point(g.x, g.y));
+  if (!exists)
+    return true;
+  // find path
+  assert(!STS->path_head.empty());
+  baseline::Point mid = STS->path_head.back();
+  while (true) {
+    if (STS->path_tail.back() == mid) {
+      STS->path_head.pop_back();
+      STS->path_tail.pop_back();
+    } else {
+      break;
+    }
+    if (!STS->path_head.empty() || !STS->path_tail.empty())
+      break;
+    assert(!STS->path_head.empty());
+    mid = STS->path_head.back();
+  }
+  for (auto p : STS->path_head) {
+    xyLoc L; L.x = p.first; L.y = p.second;
+    path.push_back(L);
+  }
+  {
+    xyLoc L; L.x = mid.first; L.y = mid.second;
+    path.push_back(L);
+  }
+  for (auto it = STS->path_tail.rbegin(), ite = STS->path_tail.rend(); it != ite; ++it) {
+    xyLoc L; L.x = it->first; L.y = it->second;
+    path.push_back(L);
+  }
   return true;
 }
 
