@@ -97,29 +97,16 @@ bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path) {
     return true;
   // find path
   assert(!STS->path_head.empty());
-  baseline::Point mid = STS->path_head.back();
-  while (true) {
-    if (STS->path_tail.back() == mid) {
-      STS->path_head.pop_back();
-      STS->path_tail.pop_back();
-    } else {
-      break;
-    }
-    if (!STS->path_head.empty() || !STS->path_tail.empty())
-      break;
-    assert(!STS->path_head.empty());
-    mid = STS->path_head.back();
-  }
-  for (auto p : STS->path_head) {
-    xyLoc L; L.x = p.first; L.y = p.second;
-    path.push_back(L);
-  }
-  {
-    xyLoc L; L.x = mid.first; L.y = mid.second;
-    path.push_back(L);
-  }
-  for (auto it = STS->path_tail.rbegin(), ite = STS->path_tail.rend(); it != ite; ++it) {
+  auto [ith, itt] = std::mismatch(STS->path_head.rbegin(), STS->path_head.rend(), STS->path_tail.rbegin(), STS->path_tail.rend());
+  --ith;
+  for (auto it = STS->path_head.rend(); ; ) {
+    --it;
     xyLoc L; L.x = it->first; L.y = it->second;
+    path.push_back(L);
+    if (it == ith) break;
+  }
+  for (auto ite = STS->path_tail.rend(); itt != ite; ++itt) {
+    xyLoc L; L.x = itt->first; L.y = itt->second;
     path.push_back(L);
   }
   return true;

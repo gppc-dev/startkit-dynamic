@@ -26,8 +26,8 @@ using Point = std::pair<int,int>;
 struct Node
 {
 	static constexpr uint32_t INV = std::numeric_limits<uint32_t>::max();
-	static constexpr uint32_t INV1 = INV-1;
-	static constexpr uint32_t INV2 = INV-2;
+	static constexpr uint32_t FLOOD_FILL = INV-1;
+	static constexpr uint32_t NO_PRED = INV-2;
 	// Node() noexcept : pred(INV), cost(INV)
 	// { }
 	uint32_t pred;
@@ -39,12 +39,12 @@ struct Grid
 	uint32_t pack(Point p) const noexcept
 	{
 		assert(static_cast<uint32_t>(p.first) < width && static_cast<uint32_t>(p.second) < height);
-		return static_cast<uint32_t>(p.second) * height + static_cast<uint32_t>(p.first);
+		return static_cast<uint32_t>(p.second) * width + static_cast<uint32_t>(p.first);
 	}
 	Point unpack(uint32_t p) const noexcept
 	{
-		assert(height != 0 && p < size());
-		return Point(static_cast<int>(p % height), static_cast<int>(p / height));
+		assert(width != 0 && p < size());
+		return Point(static_cast<int>(p % width), static_cast<int>(p / width));
 	}
 	bool get(uint32_t p) const noexcept
 	{
@@ -112,12 +112,12 @@ void flood_fill(Grid& grid, std::pmr::vector<Point>& out, uint32_t origin, std::
 		p.first += dx; p.second += dy;
 		if (grid.get(p)) {
 			if (auto& node = grid.nodes[grid.pack(p)]; node.pred == Node::INV) {
-				node.pred = Node::INV1;
+				node.pred = Node::FLOOD_FILL;
 				Q.push(p);
 			}
 		}
 	};
-	grid.nodes[origin].pred = Node::INV1;
+	grid.nodes[origin].pred = Node::FLOOD_FILL;
 	Q.push(grid.unpack(origin));
 	while (!Q.empty())
 	{
@@ -128,13 +128,6 @@ void flood_fill(Grid& grid, std::pmr::vector<Point>& out, uint32_t origin, std::
 		push_queue(p, 0, 1);
 		push_queue(p, 0, -1);
 	}
-
-	// DEBUG
-// #ifndef NDEBUG
-// 	debug_grid(grid, "cluster-" + std::to_string(out.size()), [ds=std::set<Point>(out.begin(), out.end())] (int x, int y) {
-// 		return ds.count(Point(x, y)) > 0;
-// 	});
-// #endif
 }
 
 enum class Compass : uint32_t
@@ -164,7 +157,7 @@ void dijkstra(Grid& grid, uint32_t origin, std::pmr::memory_resource* res)
 	};
 	Q.emplace(0, origin);
 	grid.nodes[origin].cost = 0;
-	grid.nodes[origin].pred = Node::INV2;
+	grid.nodes[origin].pred = Node::NO_PRED;
 	while (!Q.empty()) {
 		auto [cost, node] = Q.top(); Q.pop();
 		if (cost != grid.nodes[node].cost)
@@ -218,6 +211,12 @@ void setup_grid(Grid& grid)
 		if ((*grid.cells)[i] && grid.nodes[i].pred == Node::INV) {
 			// new cluster
 			flood_fill(grid, cluster, i, &vector_res);
+			// debug_grid(grid, "cluster-" + std::to_string(i), [ds=std::set<Point>(cluster.begin(), cluster.end())] (int x, int y) {
+			// 	return ds.count(Point(x, y)) > 0;
+			// });
+			// debug_grid(grid, "whole-" + std::to_string(i), [&grid] (int x, int y) {
+			// 	return grid.nodes[grid.pack(Point(x, y))].pred == Node::FLOOD_FILL;
+			// });
 			assert(!cluster.empty());
 			std::uint64_t sumx = 0, sumy = 0;
 			for (Point p : cluster) {
@@ -226,10 +225,10 @@ void setup_grid(Grid& grid)
 			Point cluster_centre(static_cast<int>(sumx / cluster.size()), static_cast<int>(sumy / cluster.size()));
 			uint32_t cluster_id = grid.pack( *std::min_element(cluster.begin(), cluster.end(), Dist{cluster_centre}) );
 			dijkstra(grid, cluster_id, &vector_res);
-			// debug_grid(grid, "pred-" + std::to_string(cluster.size()), [&grid] (int x, int y) {
-			// 	return grid.nodes[grid.pack(Point(x, y))].pred == 0;
+			// debug_grid(grid, "pred-" + std::to_string(i), [&grid] (int x, int y) {
+			// 	return grid.nodes[grid.pack(Point(x, y))].pred == Node::FLOOD_FILL;
 			// });
-			assert(std::all_of(cluster.begin(), cluster.end(), [&grid] (Point q) { return grid.nodes.at(grid.pack(q)).pred != Node::INV1; }));
+			assert(std::all_of(cluster.begin(), cluster.end(), [&grid] (Point q) { return grid.nodes.at(grid.pack(q)).pred != Node::FLOOD_FILL; }));
 		}
 	}
 }
