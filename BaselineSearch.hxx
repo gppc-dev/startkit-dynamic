@@ -90,19 +90,6 @@ struct SpanningTreeSearch : Grid
 	}
 };
 
-template <typename Pred>
-void debug_grid(const Grid& grid, std::string file, Pred&& pred)
-{
-	std::string line(grid.width + 1, '\n');
-	std::ofstream out(file);
-	for (int y = 0, ye = static_cast<int>(grid.height), xe = static_cast<int>(grid.width); y < ye; ++y) {
-		for (int x = 0; x < xe; ++x) {
-			line[x] = pred(x, y) ? '1' : '0';
-		}
-		out << line;
-	}
-}
-
 void flood_fill(Grid& grid, std::pmr::vector<Point>& out, uint32_t origin, std::pmr::memory_resource* res)
 {
 	assert(origin < grid.nodes.size() && grid.nodes[origin].pred == Node::INV);
@@ -211,12 +198,6 @@ void setup_grid(Grid& grid)
 		if ((*grid.cells)[i] && grid.nodes[i].pred == Node::INV) {
 			// new cluster
 			flood_fill(grid, cluster, i, &vector_res);
-			// debug_grid(grid, "cluster-" + std::to_string(i), [ds=std::set<Point>(cluster.begin(), cluster.end())] (int x, int y) {
-			// 	return ds.count(Point(x, y)) > 0;
-			// });
-			// debug_grid(grid, "whole-" + std::to_string(i), [&grid] (int x, int y) {
-			// 	return grid.nodes[grid.pack(Point(x, y))].pred == Node::FLOOD_FILL;
-			// });
 			assert(!cluster.empty());
 			std::uint64_t sumx = 0, sumy = 0;
 			for (Point p : cluster) {
@@ -225,9 +206,6 @@ void setup_grid(Grid& grid)
 			Point cluster_centre(static_cast<int>(sumx / cluster.size()), static_cast<int>(sumy / cluster.size()));
 			uint32_t cluster_id = grid.pack( *std::min_element(cluster.begin(), cluster.end(), Dist{cluster_centre}) );
 			dijkstra(grid, cluster_id, &vector_res);
-			// debug_grid(grid, "pred-" + std::to_string(i), [&grid] (int x, int y) {
-			// 	return grid.nodes[grid.pack(Point(x, y))].pred == Node::FLOOD_FILL;
-			// });
 			assert(std::all_of(cluster.begin(), cluster.end(), [&grid] (Point q) { return grid.nodes.at(grid.pack(q)).pred != Node::FLOOD_FILL; }));
 		}
 	}
