@@ -9,8 +9,6 @@
 #include <array>
 #include <memory_resource>
 #include <algorithm>
-#include <fstream>
-#include <set>
 #include <cstdint>
 #include <cassert>
 
@@ -78,15 +76,39 @@ struct SpanningTreeSearch : Grid
 	{
 		setup_grid(*this);
 	}
-	std::vector<Point> path_head;
-	std::vector<Point> path_tail;
+	std::array<std::vector<Point>, 2> path_parts;
+	const std::vector<Point>& get_path() const noexcept { return path_parts[0]; }
 	// bool search found a path
 	bool search(Point s, Point g)
 	{
-		path_to_root(*this, s, path_head);
-		if (!path_head.empty())
-			path_to_root(*this, g, path_tail);
-		return !(path_head.empty() | path_tail.empty()) && path_head.back() == path_tail.back();
+		std::array<uint32_t, 2> nodeid{{pack(s), pack(g)}};
+		if (nodes[nodeid[0]].pred == Node::INV || nodes[nodeid[1]].pred == Node::INV)
+			return false;
+		if (nodeid[0] == nodeid[1]) {
+			// zero path case
+			path_parts[0].assign(2, s);
+			return true;
+		}
+		path_parts[0].clear(); path_parts[1].clear();
+		while (true) {
+			int progressId = 0;
+			if (auto c0 = nodes[nodeid[0]].cost, c1 = nodes[nodeid[1]].cost; c0 == c1) {
+				// same dist, check if same root
+				if (nodeid[0] == nodeid[1]) {
+					path_parts[0].push_back(unpack(nodeid[progressId]));
+					break; // found least common ancestor
+				}
+				if (c0 == 0)
+					return false; // tree root's are different, no path
+			} else if (c1 > c0) {
+				progressId = 1; // nodeid[1] is longer thus process it first
+			}
+			path_parts[progressId].push_back(unpack(nodeid[progressId]));
+			nodeid[progressId] = nodes[nodeid[progressId]].pred;
+		}
+		// finalise path
+		path_parts[0].insert(path_parts[0].end(), path_parts[1].rbegin(), path_parts[1].rend());
+		return true;
 	}
 };
 
@@ -209,26 +231,6 @@ void setup_grid(Grid& grid)
 			assert(std::all_of(cluster.begin(), cluster.end(), [&grid] (Point q) { return grid.nodes.at(grid.pack(q)).pred != Node::FLOOD_FILL; }));
 		}
 	}
-}
-
-void path_to_root(const Grid& grid, Point start, std::vector<Point>& out)
-{
-	out.clear();
-	if (!grid.get(start))
-		return;
-	uint32_t nodeid = grid.pack(start);
-	const uint32_t size = static_cast<uint32_t>(grid.size());
-	do {
-		assert(nodeid != 0 || (*grid.cells)[0]);
-		out.push_back(grid.unpack(nodeid));
-#ifdef NDEBUG
-		nodeid = grid.nodes[nodeid].pred;
-#else
-		uint32_t oldNode = nodeid;
-		nodeid = grid.nodes[nodeid].pred;
-		assert(nodeid != oldNode);
-#endif
-	} while (nodeid < size);
 }
 
 } // namespace baseline

@@ -85,28 +85,11 @@ void *PrepareForSearch(const std::vector<bool> &bits, int width, int height, con
 bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path) {
   auto* STS = static_cast<baseline::SpanningTreeSearch*>(data);
   path.clear();
-  if (s.x == g.x && s.y == g.y) {
-    if (STS->get(baseline::Point(s.x, s.y))) {
-      path.push_back(s);
-      path.push_back(s);
-    }
-    return true;
-  }
   bool exists = STS->search(baseline::Point(s.x, s.y), baseline::Point(g.x, g.y));
   if (!exists)
     return true;
-  // find path
-  assert(!STS->path_head.empty());
-  auto [ith, itt] = std::mismatch(STS->path_head.rbegin(), STS->path_head.rend(), STS->path_tail.rbegin(), STS->path_tail.rend());
-  --ith;
-  for (auto it = STS->path_head.rend(); ; ) {
-    --it;
-    xyLoc L; L.x = it->first; L.y = it->second;
-    path.push_back(L);
-    if (it == ith) break;
-  }
-  for (auto ite = STS->path_tail.rend(); itt != ite; ++itt) {
-    xyLoc L; L.x = itt->first; L.y = itt->second;
+  for (auto p : STS->get_path()) {
+    xyLoc L; L.x = p.first; L.y = p.second;
     path.push_back(L);
   }
   return true;
@@ -117,4 +100,4 @@ bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path) {
  * 
  * @returns the name of the algorithm
  */
-std::string GetName() { return "example-A*"; }
+std::string GetName() { return "example-SpanningTreeSearch-8N"; }
