@@ -21,7 +21,7 @@ SOFTWARE.
 */
 
 #include "Entry.h"
-#include "Astar.h"
+#include "BaselineSearch.hxx"
 
 
 /**
@@ -59,8 +59,8 @@ void PreprocessMap(const std::vector<bool> &bits, int width, int height, const s
  * @returns Pointer to data-structure used for search.  Memory should be stored on heap, not stack.
  */
 void *PrepareForSearch(const std::vector<bool> &bits, int width, int height, const std::string &filename) {
-  Astar* astar = new Astar(&bits, width, height);
-  return astar;
+  auto* STS = new baseline::SpanningTreeSearch(bits, width, height);
+  return STS;
 }
 
 /**
@@ -83,8 +83,15 @@ void *PrepareForSearch(const std::vector<bool> &bits, int width, int height, con
  *          if `false` then `GetPath` will be called again until search is complete.
  */
 bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path) {
-  Astar* astar = (Astar*)(data);
-  astar->get_path(s, g, path);
+  auto* STS = static_cast<baseline::SpanningTreeSearch*>(data);
+  path.clear();
+  bool exists = STS->search(baseline::Point(s.x, s.y), baseline::Point(g.x, g.y));
+  if (!exists)
+    return true;
+  for (auto p : STS->get_path()) {
+    xyLoc L; L.x = p.first; L.y = p.second;
+    path.push_back(L);
+  }
   return true;
 }
 
@@ -93,4 +100,4 @@ bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path) {
  * 
  * @returns the name of the algorithm
  */
-std::string GetName() { return "example-A*"; }
+std::string GetName() { return "example-SpanningTreeSearch-8N"; }

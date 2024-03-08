@@ -1,5 +1,5 @@
 CXX       = g++
-CXXFLAGS   = -W -Wall -O3 -std=c++17
+CXXFLAGS   = -W -Wall -O3 -std=c++17 -DNDEBUG
 DEVFLAGS = -W -Wall -ggdb -O0 -std=c++17
 EXEC     = run
 
