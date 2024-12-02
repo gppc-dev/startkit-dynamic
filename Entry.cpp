@@ -23,22 +23,6 @@ SOFTWARE.
 #include "Entry.h"
 #include "BaselineSearch.hxx"
 
-
-/**
- * User code used during preprocessing of a map.  Can be left blank if no pre-processing is required.
- * It will not be called in the same program execution as `PrepareForSearch` is called,
- * all data must be shared through file.
- * 
- * Called with command below:
- * ./run -pre file.map
- * 
- * @param[in] bits Array of 2D table.  (0,0) is located at top-left corner.  bits.size() = height * width
- *                 Packed as 1D array, row-by-ray, i.e. first width bool's give row y=0, next width y=1
- *                 bits[i] returns `true` if (x,y) is traversable, `false` otherwise
- * @param[in] width Give the map's width
- * @param[in] height Give the map's height
- * @param[in] filename The filename you write the preprocessing data to.  Open in write mode.
- */
 void PreprocessMap(const std::vector<bool> &bits, int width, int height, const std::string &filename) {}
 
 /**
