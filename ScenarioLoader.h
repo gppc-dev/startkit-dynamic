@@ -26,58 +26,73 @@ SOFTWARE.
 #include <vector>
 #include <cstring>
 #include <string>
+#include <filesystem>
+#include <memory_resource>
+#include <cassert>
+#include <cstdint>
+#include "MapLoader.h"
 
-static const int kNoScaling = -1;
+constexpr size_t GPPC_PATCH_LIMIT = 100'000'000;
 
 /** 
  * Experiments stored by the ScenarioLoader class. 
  */
 class ScenarioLoader;
 
-class Experiment {
-public:
-	Experiment(int sx,int sy,int gx,int gy,int b, double d, std::string m)
-    :startx(sx),starty(sy),goalx(gx),goaly(gy),scaleX(kNoScaling),scaleY(kNoScaling),bucket(b),distance(d),map(m){}
-	Experiment(int sx,int sy,int gx,int gy,int sizeX, int sizeY,int b, double d, std::string m)
-    :startx(sx),starty(sy),goalx(gx),goaly(gy),scaleX(sizeX),scaleY(sizeY),bucket(b),distance(d),map(m){}
-	int GetStartX() const {return startx;}
-	int GetStartY() const {return starty;}
-	int GetGoalX() const {return goalx;}
-	int GetGoalY() const {return goaly;}
-	int GetBucket() const {return bucket;}
-	double GetDistance() const {return distance;}
-	void GetMapName(char* mymap) const {strcpy(mymap,map.c_str());}
-	const char *GetMapName() const { return map.c_str(); }
-	int GetXScale() const {return scaleX;}
-	int GetYScale() const {return scaleY;}
-	
-private:
-	friend class ScenarioLoader;
-	int startx, starty, goalx, goaly;
-	int scaleX;
-	int scaleY;
-	int bucket;
-	double distance;
-	std::string map;
+struct Command
+{
+	enum class Type : uint8_t
+	{
+		patch,
+		query
+	};
+	Type type;
+	uint16_t bucket;
+	union {
+		struct {
+			uint32_t id;
+			uint16_t x;
+			uint16_t y;
+		} patch;
+		struct {
+			uint16_t sx;
+			uint16_t sy;
+			uint16_t gx;
+			uint16_t gy;
+			// double dist; stored out of command
+		} query;
+	} cmd;
 };
 
 /** A class which loads and stores scenarios from files.  
  * Versions currently handled: 0.0 and 1.0 (includes scale). 
  */
 
-class ScenarioLoader{
+class ScenarioLoader
+{
 public:
-	ScenarioLoader() { scenName[0] = 0; }
-	ScenarioLoader(const char *);
-	void Save(const char *);
-	int GetNumExperiments(){return experiments.size();}
-	const char *GetScenarioName() { return scenName; }
-	Experiment GetNthExperiment(int which)
-	{return experiments[which];}
-	void AddExperiment(Experiment which);
+	ScenarioLoader();
+	/**
+	 * @param filename The in stream filename, if blank, assume cwd for matching patch name
+	 */
+	bool load(std::istream& in, const std::filesystem::path& filename = {});
+
+	void clear();
+
+	operator bool() const noexcept { return width != 0; }
+
 private:
-	char scenName[1024];
-	std::vector<Experiment> experiments;
+	bool load_map(const std::filesystem::path& filename);
+
+private:
+	std::pmr::monotonic_buffer_resource patchRes;
+	std::vector<Map> patchGrid;
+	std::vector<Command> commands;
+	std::vector<double> queryCost;
+	int width;
+	int height;
+	int patch_commands;
+	int query_commands;
 };
 
 #endif // GPPC_SCENARIOLOADER_H
