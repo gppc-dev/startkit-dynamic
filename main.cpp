@@ -53,29 +53,6 @@ bool pre   = false;
 bool run   = false;
 bool check = false;
 
-void LoadMap(const char *fname, std::vector<bool> &map, int &width, int &height)
-{
-  FILE *f;
-  f = std::fopen(fname, "r");
-  if (f)
-  {
-    std::fscanf(f, "type octile\nheight %d\nwidth %d\nmap\n", &height, &width);
-    map.resize(height*width);
-    for (int y = 0; y < height; y++)
-    {
-      for (int x = 0; x < width; x++)
-      {
-        char c;
-        do {
-          std::fscanf(f, "%c", &c);
-        } while (std::isspace(c));
-        map[y*width+x] = (c == '.' || c == 'G' || c == 'S');
-      }
-    }
-    std::fclose(f);
-  }
-}
-
 double euclidean_dist(const xyLoc& a, const xyLoc& b) {
   int dx = std::abs(b.x - a.x);
   int dy = std::abs(b.y - a.y);
@@ -211,7 +188,8 @@ int main(int argc, char **argv)
   }
 
   // in mapData, 1: traversable, 0: obstacle
-  LoadMap(mapfile.c_str(), mapData, width, height);
+  ScenarioLoader scen;
+  scen.load(mapfile);
   datafile = index_dir + "/" + GetName() + "-" + basename(mapfile);
 
   if (pre)

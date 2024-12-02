@@ -64,6 +64,17 @@ struct Command
 	} cmd;
 };
 
+struct Query
+{
+	int32_t query_id;
+	int32_t bucket;
+	uint16_t sx;
+	uint16_t sy;
+	uint16_t gx;
+	uint16_t gy;
+	double cost;
+};
+
 /** A class which loads and stores scenarios from files.  
  * Versions currently handled: 0.0 and 1.0 (includes scale). 
  */
@@ -76,10 +87,19 @@ public:
 	 * @param filename The in stream filename, if blank, assume cwd for matching patch name
 	 */
 	bool load(std::istream& in, const std::filesystem::path& filename = {});
+	bool load(const std::filesystem::path& filename);
 
 	void clear();
 
 	operator bool() const noexcept { return width != 0; }
+
+	const auto& getPatches() const noexcept { return patchGrid; }
+	const auto& getCommands() const noexcept { return commands; }
+	const auto& getQueryCost() const noexcept { return queryCost; }
+	int getWidth() const noexcept { return width; }
+	int getHeight() const noexcept { return height; }
+	int getPatchCommands() const noexcept { return patchCommands; }
+	int getQueryCommands() const noexcept { return queryCommands; }
 
 private:
 	bool load_map(const std::filesystem::path& filename);
@@ -91,8 +111,30 @@ private:
 	std::vector<double> queryCost;
 	int width;
 	int height;
-	int patch_commands;
-	int query_commands;
+	int patchCommands;
+	int queryCommands;
+};
+
+class ScenarioRunner
+{
+public:
+	ScenarioRunner();
+	void linkScen(const ScenarioLoader& scen);
+	/**
+	 * Reach next query.
+	 * @return number of patches applied (0 or more), -1 for end of benchmark
+	 */
+	int nextQuery();
+	Query getCurrentQuery() const;
+	bool done() { return commandAt >= commandCount; }
+
+private:
+	const ScenarioLoader* scenario;
+	Map activeMap;
+	std::vector<Patch> appliedPatch;
+	int scenarioAt;
+	int commandAt;
+	int commandCount;
 };
 
 #endif // GPPC_SCENARIOLOADER_H

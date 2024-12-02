@@ -149,6 +149,13 @@ bool ScenarioLoader::load(std::istream& in, const std::filesystem::path& scenFil
 		return false; // bad read
 	return true;
 }
+bool ScenarioLoader::load(const std::filesystem::path& filename)
+{
+	std::ifstream file(filename);
+	if (!file)
+		return false;
+	return load(file, filename);
+}
 
 bool ScenarioLoader::load_map(const std::filesystem::path& filename)
 {
@@ -179,4 +186,66 @@ bool ScenarioLoader::load_map(const std::filesystem::path& filename)
 		if (!patch_in_bounds(bounds_check, Patch{&patchGrid[patch_i], 0, 0}))
 			return false;
 	}
+}
+
+ScenarioRunner::ScenarioRunner() : scenario{},
+	activeMap{}, scenarioAt{}, commandAt{}, commandCount{}
+{ }
+
+void ScenarioRunner::linkScen(const ScenarioLoader& scen)
+{
+	scenario = &scen;
+	activeMap.width = scen.getWidth();
+	activeMap.height = scen.getHeight();
+	activeMap.bitmap.assign(scen.getWidth() * scen.getHeight(), false);
+	appliedPatch.clear();
+	scenarioAt = -1;
+	commandAt = -1;
+	commandCount = scen.getCommands().size();
+}
+
+int ScenarioRunner::nextQuery()
+{
+	appliedPatch.clear();
+	int command_i = commandAt + 1;
+	assert(command_i >= 0);
+	int command_n = scenario->getCommands().size();
+	int command_done = 0; // how much to adjust commandAt at the end
+	for ( ; command_i < command_n; ++command_i) {
+		command_done += 1;
+		Command cmd = scenario->getCommands()[command_i];
+		if (cmd.type == Command::Type::query)
+			break; // reached next query
+		assert(cmd.type == Command::Type::patch); // must be patch
+		// apply patch
+		const Map& patch_grid = scenario->getPatches()[cmd.cmd.patch.id];
+		Patch patch{&patch_grid, cmd.cmd.patch.x, cmd.cmd.patch.y};
+		apply_patch(activeMap, patch);
+		appliedPatch.push_back(std::move(patch));
+	}
+	// reached past last command or query
+	commandAt += command_done;
+	if (command_i >= command_n) {
+		return -1;
+	}
+	scenarioAt += 1;
+	return appliedPatch.size();
+}
+
+Query ScenarioRunner::getCurrentQuery() const
+{
+	Command cmd = scenario->getCommands().at(commandAt);
+	assert(cmd.type == Command::Type::query); // must be on query
+	if (cmd.type != Command::Type::query) {
+		throw std::logic_error("ScenarioRunner::getCurrentQuery must be on Query");
+	}
+	Query query;
+	query.query_id = scenarioAt;
+	query.bucket = cmd.bucket;
+	query.sx = cmd.cmd.query.sx;
+	query.sy = cmd.cmd.query.sy;
+	query.gx = cmd.cmd.query.gx;
+	query.gy = cmd.cmd.query.gy;
+	query.cost = scenario->getQueryCost().at(scenarioAt);
+	return query;
 }
