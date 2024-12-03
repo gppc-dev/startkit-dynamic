@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cassert>
+#include "Entry.h"
 
 namespace baseline
 {
@@ -33,7 +34,7 @@ struct Node
 };
 struct Grid
 {
-	size_t size() const noexcept { return cells->size(); }
+	size_t size() const noexcept { return cells_size; }
 	uint32_t pack(Point p) const noexcept
 	{
 		assert(static_cast<uint32_t>(p.first) < width && static_cast<uint32_t>(p.second) < height);
@@ -44,26 +45,32 @@ struct Grid
 		assert(width != 0 && p < size());
 		return Point(static_cast<int>(p % width), static_cast<int>(p / width));
 	}
+	bool get_unbound(uint32_t p) const noexcept
+	{
+		return gppc_patch_get(cells, p);
+	}
 	bool get(uint32_t p) const noexcept
 	{
-		return p < size() && (*cells)[p];
+		return p < size() && gppc_patch_get(cells, p);
 	}
 	bool get(Point p) const noexcept
 	{
 		return static_cast<uint32_t>(p.first) < width
 		    && static_cast<uint32_t>(p.second) < height
-			&& (*cells)[pack(p)];
+			&& gppc_patch_get_xy(cells, p.first, p.second);
 	}
 
-	Grid(const std::pmr::vector<bool>& l_cells, int l_width, int l_height) :
-		 width(static_cast<uint32_t>(l_width))
-		,height(static_cast<uint32_t>(l_height))
-		,cells(&l_cells)
+	Grid(gppc_patch map) :
+		 width(static_cast<uint32_t>(map.width))
+		,height(static_cast<uint32_t>(map.height))
+		,cells(map)
+		,cells_size(width * height)
 	{ }
 
 	uint32_t width;
 	uint32_t height;
-	const std::pmr::vector<bool>* cells;
+	gppc_patch cells;
+	uint32_t cells_size;
 	std::vector<Node> nodes;
 };
 
@@ -72,26 +79,29 @@ void setup_grid(Grid& grid);
 
 struct SpanningTreeSearch : Grid
 {
-	SpanningTreeSearch(const std::pmr::vector<bool>& l_cells, int l_width, int l_height) : Grid(l_cells, l_width, l_height)
+	SpanningTreeSearch(gppc_patch map) : Grid(map)
+	{
+		update_grid();
+	}
+	void update_grid()
 	{
 		setup_grid(*this);
 	}
-	void update_grid(const std::pmr::vector<bool>& l_cells)
-	{
-		cells = &l_cells;
-		setup_grid(*this);
-	}
-	std::array<std::vector<Point>, 2> path_parts;
-	const std::vector<Point>& get_path() const noexcept { return path_parts[0]; }
+	std::array<std::vector<uint16_t>, 2> path_parts;
+	const std::vector<uint16_t>& get_path() const noexcept { return path_parts[0]; }
 	// bool search found a path
 	bool search(Point s, Point g)
 	{
+		auto&& push_back = [](std::vector<uint16_t>& path, Point p) {
+			path.push_back((uint16_t)p.first);
+			path.push_back((uint16_t)p.second);
+		};
 		std::array<uint32_t, 2> nodeid{{pack(s), pack(g)}};
 		if (nodes[nodeid[0]].pred == Node::INV || nodes[nodeid[1]].pred == Node::INV)
 			return false;
 		if (nodeid[0] == nodeid[1]) {
 			// zero path case
-			path_parts[0].assign(2, s);
+			path_parts[0].assign({(uint16_t)s.first, (uint16_t)s.second, (uint16_t)g.first, (uint16_t)g.second});
 			return true;
 		}
 		path_parts[0].clear(); path_parts[1].clear();
@@ -100,7 +110,7 @@ struct SpanningTreeSearch : Grid
 			if (auto c0 = nodes[nodeid[0]].cost, c1 = nodes[nodeid[1]].cost; c0 == c1) {
 				// same dist, check if same root
 				if (nodeid[0] == nodeid[1]) {
-					path_parts[0].push_back(unpack(nodeid[progressId]));
+					push_back(path_parts[0], unpack(nodeid[progressId]));
 					break; // found least common ancestor
 				}
 				if (c0 == 0)
@@ -108,11 +118,14 @@ struct SpanningTreeSearch : Grid
 			} else if (c1 > c0) {
 				progressId = 1; // nodeid[1] is longer thus process it first
 			}
-			path_parts[progressId].push_back(unpack(nodeid[progressId]));
+			push_back(path_parts[progressId], unpack(nodeid[progressId]));
 			nodeid[progressId] = nodes[nodeid[progressId]].pred;
 		}
 		// finalise path
-		path_parts[0].insert(path_parts[0].end(), path_parts[1].rbegin(), path_parts[1].rend());
+		for (int i = path_parts[1].size() - 2; i >= 0; i -= 2) {
+			path_parts[0].push_back(path_parts[1][i]); // x
+			path_parts[0].push_back(path_parts[1][i+1]); // y
+		}
 		return true;
 	}
 };
@@ -222,7 +235,7 @@ void setup_grid(Grid& grid)
 		Point centre;
 	};
 	for (uint32_t i = 0, ie = grid.size(); i < ie; ++i) {
-		if ((*grid.cells)[i] && grid.nodes[i].pred == Node::INV) {
+		if (grid.get_unbound(i) && grid.nodes[i].pred == Node::INV) {
 			// new cluster
 			flood_fill(grid, cluster, i, &vector_res);
 			assert(!cluster.empty());
