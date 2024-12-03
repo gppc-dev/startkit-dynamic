@@ -23,7 +23,8 @@ SOFTWARE.
 #include "Entry.h"
 #include "BaselineSearch.hxx"
 
-void PreprocessMap(const std::vector<bool> &bits, int width, int height, const std::string &filename) {}
+void PreprocessMap(const Map& map, const std::string &filename)
+{}
 
 /**
  * User code used to setup search before queries.  Can also load pre-processing data from file to speed load.
@@ -42,9 +43,16 @@ void PreprocessMap(const std::vector<bool> &bits, int width, int height, const s
  * @param[in] filename The filename you write the preprocessing data to.  Open in write mode.
  * @returns Pointer to data-structure used for search.  Memory should be stored on heap, not stack.
  */
-void *PrepareForSearch(const std::vector<bool> &bits, int width, int height, const std::string &filename) {
-  auto* STS = new baseline::SpanningTreeSearch(bits, width, height);
+void *SearchInit(const Map &map, const std::string &filename) {
+  auto* STS = new baseline::SpanningTreeSearch(map.bitmap, map.width, map.height);
   return STS;
+}
+
+
+void DynamicMapChange(void *data, const Map &map, const std::vector<Patch> &patches)
+{
+  auto* STS = static_cast<baseline::SpanningTreeSearch*>(data);
+  STS->update_grid(map.bitmap);
 }
 
 /**

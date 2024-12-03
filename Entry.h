@@ -86,6 +86,8 @@ e.g.:
 */
 bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path);
 
+void FreeSearch(void *data);
+
 std::string GetName();
 
 #endif // GPPC_ENTRY_H

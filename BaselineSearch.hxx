@@ -55,7 +55,7 @@ struct Grid
 			&& (*cells)[pack(p)];
 	}
 
-	Grid(const std::vector<bool>& l_cells, int l_width, int l_height) :
+	Grid(const std::pmr::vector<bool>& l_cells, int l_width, int l_height) :
 		 width(static_cast<uint32_t>(l_width))
 		,height(static_cast<uint32_t>(l_height))
 		,cells(&l_cells)
@@ -63,7 +63,7 @@ struct Grid
 
 	uint32_t width;
 	uint32_t height;
-	const std::vector<bool>* cells;
+	const std::pmr::vector<bool>* cells;
 	std::vector<Node> nodes;
 };
 
@@ -72,8 +72,13 @@ void setup_grid(Grid& grid);
 
 struct SpanningTreeSearch : Grid
 {
-	SpanningTreeSearch(const std::vector<bool>& l_cells, int l_width, int l_height) : Grid(l_cells, l_width, l_height)
+	SpanningTreeSearch(const std::pmr::vector<bool>& l_cells, int l_width, int l_height) : Grid(l_cells, l_width, l_height)
 	{
+		setup_grid(*this);
+	}
+	void update_grid(const std::pmr::vector<bool>& l_cells)
+	{
+		cells = &l_cells;
 		setup_grid(*this);
 	}
 	std::array<std::vector<Point>, 2> path_parts;

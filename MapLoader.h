@@ -44,24 +44,24 @@ struct Patch
 	int x, y;
 };
 
-void map_set(Map& map, int i, bool value)
+inline void map_set(Map& map, int i, bool value)
 {
 	assert(0 <= i && i < map.width * map.height);
 	map.bitmap[i] = value;
 }
-bool map_get(const Map& map, int i)
+inline bool map_get(const Map& map, int i)
 {
 	assert(0 <= i && i < map.width * map.height);
 	return map.bitmap[i];
 }
-bool map_get(const Map& map, int x, int y)
+inline bool map_get(const Map& map, int x, int y)
 {
 	assert(0 <= x && x < map.width);
 	assert(0 <= y && y < map.height);
 	return map.bitmap[map.width * y + x];
 }
 
-bool point_in_bounds(const Map& map, int x, int y) noexcept
+inline bool point_in_bounds(const Map& map, int x, int y) noexcept
 {
 	if (x < 0 || x >= map.width)
 		return false;
@@ -70,7 +70,7 @@ bool point_in_bounds(const Map& map, int x, int y) noexcept
 	return true;
 }
 
-bool patch_in_bounds(const Map& map, const Patch& patch) noexcept
+inline bool patch_in_bounds(const Map& map, const Patch& patch) noexcept
 {
 	if (patch.map == nullptr)
 		return false;
@@ -81,7 +81,7 @@ bool patch_in_bounds(const Map& map, const Patch& patch) noexcept
 	return true;
 }
 
-void apply_patch(Map& map, Patch patch)
+inline void apply_patch(Map& map, Patch patch)
 {
 	assert(patch_in_bounds(map, patch));
 	int map_width = map.width;
@@ -98,19 +98,19 @@ void apply_patch(Map& map, Patch patch)
 	}
 }
 
-bool load_map_data(std::istream& in, Map &map, std::pmr::memory_resource* res = nullptr)
+inline bool load_map_data(std::istream& in, Map &map, std::pmr::memory_resource* res = nullptr)
 {
-	char buffer[GPPC_HARD_MAP_LIMIT + 10];
+	char buffer[static_cast<int>(GPPC_HARD_MAP_LIMIT) + 10];
 	int width, height;
 	// read header
 	if (!(in >> std::setw(8) >> buffer >> height))
 		return false;
-	if (std::strcmp(buffer, "height") != 0 || height < 1 || height > GPPC_HARD_MAP_LIMIT)
+	if (std::strcmp(buffer, "height") != 0 || height < 1 || height > static_cast<int>(GPPC_HARD_MAP_LIMIT))
 		return false;
 	map.height = height;
 	if (!(in >> std::setw(8) >> buffer >> width))
 		return false;
-	if (std::strcmp(buffer, "width") != 0 || width < 1 || width > GPPC_HARD_MAP_LIMIT)
+	if (std::strcmp(buffer, "width") != 0 || width < 1 || width > static_cast<int>(GPPC_HARD_MAP_LIMIT))
 		return false;
 	map.width = width;
 	int cells = map.height * map.width;
@@ -132,7 +132,7 @@ bool load_map_data(std::istream& in, Map &map, std::pmr::memory_resource* res = 
 			case '.':
 			case 'G':
 			case 'S':
-				map.bitmap[i] = true;
+				map_set(map, i, true);
 				break;
 			case '@':
 			case 'O':
@@ -144,6 +144,7 @@ bool load_map_data(std::istream& in, Map &map, std::pmr::memory_resource* res = 
 			}
 		}
 	}
+	return true;
 }
 
 #endif // GPPC_MAPLOADER_H

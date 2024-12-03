@@ -28,7 +28,7 @@ SOFTWARE.
 /** 
  * Loads the experiments from the scenario file. 
  */
-ScenarioLoader::ScenarioLoader() : patchRes(4 * 1024 * 1024), width{}, height{}, patch_commands{}, query_commands{}
+ScenarioLoader::ScenarioLoader() : patchRes(4 * 1024 * 1024), width{}, height{}, patchCommands{}, queryCommands{}
 { }
 
 void ScenarioLoader::clear()
@@ -39,8 +39,8 @@ void ScenarioLoader::clear()
 		patchGrid.clear();
 		patchRes.release();
 		width = height = 0;
-		patch_commands = 0;
-		query_commands = 0;
+		patchCommands = 0;
+		queryCommands = 0;
 	}
 }
 
@@ -57,11 +57,11 @@ bool ScenarioLoader::load(std::istream& in, const std::filesystem::path& scenFil
 		return false;
 	if (!(in >> tmp >> height))
 		return false;
-	if (tmp != "height" || height < 1 || height > GPPC_HARD_MAP_LIMIT)
+	if (tmp != "height" || height < 1 || height > static_cast<int>(GPPC_HARD_MAP_LIMIT))
 		return false;
 	if (!(in >> tmp >> width))
 		return false;
-	if (tmp != "width" || width < 1 || width > GPPC_HARD_MAP_LIMIT)
+	if (tmp != "width" || width < 1 || width > static_cast<int>(GPPC_HARD_MAP_LIMIT))
 		return false;
 	// read cost type and position
 	int cost_pos = -1;
@@ -82,7 +82,7 @@ bool ScenarioLoader::load(std::istream& in, const std::filesystem::path& scenFil
 	// read patch filename
 	if (!(in >> tmp))
 		return false;
-	if (tmp != "patches")
+	if (tmp != "patch")
 		return false;
 	if (!(in >> tmp))
 		return false;
@@ -102,8 +102,8 @@ bool ScenarioLoader::load(std::istream& in, const std::filesystem::path& scenFil
 		return false; // patch file does not exists
 
 	// read commands
-	patch_commands = 0;
-	query_commands = 0;
+	patchCommands = 0;
+	queryCommands = 0;
 	commands.reserve(1024);
 	queryCost.reserve(1024);
 
@@ -111,18 +111,24 @@ bool ScenarioLoader::load(std::istream& in, const std::filesystem::path& scenFil
 	bounds_check.width = width;
 	bounds_check.height = height;
 
+	if (!(in >> tmp))
+		return false;
+	if (tmp != "commands")
+		return false;
+
 	while ((in >> tmp)) {
 		if (tmp == "P") {
 			// patch
 			Command cmd = {Command::Type::patch, 0, { .patch = {} }};
 			in >> cmd.bucket >> cmd.cmd.patch.id >> cmd.cmd.patch.x >> cmd.cmd.patch.y;
 			// check is valid patch
-			if (int pid = cmd.cmd.patch.id; pid < 0 && pid >= patchGrid.size())
+			if (int pid = cmd.cmd.patch.id; pid < 0 && pid >= static_cast<int>(patchGrid.size()))
 				return false;
 			const Map& grid = patchGrid[cmd.cmd.patch.id];
 			if (!patch_in_bounds(bounds_check, Patch{&grid, cmd.cmd.patch.x, cmd.cmd.patch.y}))
 				return false;
 			commands.push_back(cmd);
+			patchCommands += 1;
 		} else if (tmp == "Q") {
 			// query
 			Command cmd = {Command::Type::query, 0, { .query = {} }};
@@ -141,6 +147,7 @@ bool ScenarioLoader::load(std::istream& in, const std::filesystem::path& scenFil
 			}
 			commands.push_back(cmd);
 			queryCost.push_back(query_dist);
+			queryCommands += 1;
 		} else {
 			return false; // unknown command
 		}
@@ -170,22 +177,24 @@ bool ScenarioLoader::load_map(const std::filesystem::path& filename)
 	int patch_count;
 	if (!(in >> setw(12) >> buffer1 >> patch_count))
 		return false;
-	if (std::strcmp(buffer1, "patches") != 0 || patch_count < 0 || patch_count > GPPC_PATCH_LIMIT)
+	if (std::strcmp(buffer1, "patches") != 0 || patch_count < 0 || patch_count > static_cast<int>(GPPC_PATCH_LIMIT))
 		return false;
 	patchGrid.resize(patch_count);
 	Map bounds_check;
 	bounds_check.width = width;
 	bounds_check.height = height;
 	for (int patch_i = 0; patch_i < patch_count; ++patch_i) {
-		if (!(in >> setw(12) >> buffer1))
+		int patch_id;
+		if (!(in >> setw(12) >> buffer1 >> patch_id))
 			return false;
-		if (std::strcmp(buffer1, "patch") != 0)
+		if (std::strcmp(buffer1, "patch") != 0 || patch_id != patch_i)
 			return false;
 		if (!load_map_data(in, patchGrid[patch_i], &patchRes))
 			return false;
 		if (!patch_in_bounds(bounds_check, Patch{&patchGrid[patch_i], 0, 0}))
 			return false;
 	}
+	return true;
 }
 
 ScenarioRunner::ScenarioRunner() : scenario{},
@@ -197,7 +206,7 @@ void ScenarioRunner::linkScen(const ScenarioLoader& scen)
 	scenario = &scen;
 	activeMap.width = scen.getWidth();
 	activeMap.height = scen.getHeight();
-	activeMap.bitmap.assign(scen.getWidth() * scen.getHeight(), false);
+	activeMap.bitmap.assign(scen.getWidth() * scen.getHeight(), true);
 	appliedPatch.clear();
 	scenarioAt = -1;
 	commandAt = -1;

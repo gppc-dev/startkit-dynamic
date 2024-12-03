@@ -127,6 +127,8 @@ public:
 	int nextQuery();
 	Query getCurrentQuery() const;
 	bool done() { return commandAt >= commandCount; }
+	const Map& getActiveMap() const noexcept { return activeMap; }
+	const auto& getAppliedPatches() const noexcept { return appliedPatch; }
 
 private:
 	const ScenarioLoader* scenario;

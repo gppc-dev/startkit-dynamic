@@ -44,7 +44,7 @@ SOFTWARE.
 #include <unistd.h>
 #endif
 
-std::string datafile, mapfile, scenfile, flag;
+std::string datafile, scenfile, flag;
 const std::string index_dir = "index_data";
 constexpr double PATH_FIRST_STEP_LENGTH = 20.0;
 std::vector<bool> mapData;
@@ -74,23 +74,33 @@ int ValidatePath(const std::vector<xyLoc>& thePath)
   return inx::ValidatePath(mapData, width, height, thePath);
 }
 
-void RunExperiment(void* data) {
+void RunExperiment(ScenarioRunner& run, void* data) {
   Timer t;
-  ScenarioLoader scen(scenfile.c_str());
   std::vector<xyLoc> thePath;
+  thePath.reserve(1024);
 
   std::string resultfile = "result.csv";
   std::ofstream fout(resultfile);
-  const std::string header = "map,scen,experiment_id,path_size,path_length,ref_length,time_cost,20steps_cost,max_step_time";
+  const std::string header = "scen,experiment_id,path_size,path_length,ref_length,time_cost,20steps_cost,max_step_time";
 
   fout << header << std::endl;
-  for (int x = 0; x < scen.GetNumExperiments(); x++)
+  for (int query_id = 0; ; query_id++)
   {
+    if (query_id != 0) {
+      int patch_changes = run.nextQuery();
+      if (patch_changes < 0)
+        break; // no more queries
+      else if (patch_changes != 0) {
+        // map changed
+        DynamicMapChange(data, run.getActiveMap(), run.getAppliedPatches());
+      }
+    }
     xyLoc s, g;
-    s.x = scen.GetNthExperiment(x).GetStartX();
-    s.y = scen.GetNthExperiment(x).GetStartY();
-    g.x = scen.GetNthExperiment(x).GetGoalX();
-    g.y = scen.GetNthExperiment(x).GetGoalY();
+    auto scen = run.getCurrentQuery();
+    s.x = scen.sx;
+    s.y = scen.sy;
+    g.x = scen.gx;
+    g.y = scen.gy;
 
     thePath.clear();
     typedef Timer::duration dur;
@@ -108,12 +118,12 @@ void RunExperiment(void* data) {
       }
     } while (!done);
     double plen = done?GetPathLength(thePath): 0;
-    double ref_len = scen.GetNthExperiment(x).GetDistance();
+    double ref_len = scen.cost;
 
 
     fout << std::setprecision(9) << std::fixed;
-    fout << mapfile  << "," << scenfile       << ","
-         << x        << "," << thePath.size() << ","
+    fout << scenfile       << ","
+         << query_id        << "," << thePath.size() << ","
          << plen     << "," << ref_len        << ","
          << tcost.count() << "," << tcost_first.count() << ","
          << max_step.count() << std::endl;
@@ -136,7 +146,7 @@ void RunExperiment(void* data) {
 }
 
 void print_help(char **argv) {
-  std::printf("Invalid Arguments\nUsage %s <flag> <map> <scenario>\n", argv[0]);
+  std::printf("Invalid Arguments\nUsage %s <flag> <scenario>\n", argv[0]);
   std::printf("Flags:\n");
   std::printf("\t-full : Preprocess map and run scenario\n");
   std::printf("\t-pre : Preprocess map\n");
@@ -154,12 +164,7 @@ bool parse_argv(int argc, char **argv) {
   else return false;
 
   if (argc < 3) return false;
-  mapfile = std::string(argv[2]);
-
-  if (run) {
-    if (argc < 4) return false;
-    scenfile = std::string(argv[3]);
-  }
+  scenfile = std::string(argv[2]);
   return true;
 }
 
@@ -189,16 +194,25 @@ int main(int argc, char **argv)
 
   // in mapData, 1: traversable, 0: obstacle
   ScenarioLoader scen;
-  scen.load(mapfile);
-  datafile = index_dir + "/" + GetName() + "-" + basename(mapfile);
+  if (!scen.load(scenfile)) {
+    std::cerr << "Failed to load scenario file: " << scenfile << std::endl;
+    return 1;
+  }
+  datafile = index_dir + "/" + GetName() + "-" + basename(scenfile);
+
+  ScenarioRunner scenRun;
+  scenRun.linkScen(scen);
+  int qid = scenRun.nextQuery();
+  if (qid < 0)
+    return 1; // no queries to run
 
   if (pre)
-    PreprocessMap(mapData, width, height, datafile);
+    PreprocessMap(scenRun.getActiveMap(), datafile);
   
   if (!run)
     return 0;
 
-  void *reference = PrepareForSearch(mapData, width, height, datafile);
+  void *reference = SearchInit(scenRun.getActiveMap(), datafile);
 
 #ifdef GPPC_MEMORY_RECORD
   bool memory_track = std::getenv("GPPC_MEMORY_TRACK") != nullptr;
@@ -208,7 +222,7 @@ int main(int argc, char **argv)
     std::system(argument);
   }
 #endif
-  RunExperiment(reference);
+  RunExperiment(scenRun, reference);
 #ifdef GPPC_MEMORY_RECORD
   if (memory_track) {
     std::sprintf(argument, "pmap -x %d | tail -n 1 >> run.info", getpid());
