@@ -20,21 +20,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef GPPC_GPPC_H
-#define GPPC_GPPC_H
-
-#include <stdint.h>
+#include "MapLoader.h"
 
 namespace GPPC {
 
-struct xyLoc {
-	int16_t x;
-	int16_t y;
-};
-constexpr double PATH_FIRST_STEP_LENGTH = 20.0;
-constexpr size_t GPPC_PATCH_LIMIT = 100'000'000;
-constexpr size_t GPPC_HARD_MAP_LIMIT = 8000;
+
 
 } // namespace GPPC
-
-#endif // GPPC_GPPC_H

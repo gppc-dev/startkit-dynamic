@@ -30,12 +30,14 @@ SOFTWARE.
 #include <iomanip>
 #include <memory_resource>
 #include <cassert>
+#include "GPPC.h"
+#include "Entry.h"
 
-constexpr size_t GPPC_HARD_MAP_LIMIT = 8000;
+namespace GPPC {
 
 struct Map
 {
-	std::pmr::vector<bool> bitmap;
+	uint8_t* bitarray;
 	int width, height;
 };
 struct Patch
@@ -44,21 +46,50 @@ struct Patch
 	int x, y;
 };
 
+inline ::gppc_patch to_gppc_patch(Map m)
+{
+	return ::gppc_patch{
+		m.bitarray,
+		static_cast<uint16_t>(m.width), static_cast<uint16_t>(m.height),
+		0, 0
+	};
+}
+inline ::gppc_patch to_gppc_patch(Patch m)
+{
+	assert(m.map != nullptr);
+	::gppc_patch p = to_gppc_patch(*m.map);
+	p.x = static_cast<uint16_t>(m.x);
+	p.y = static_cast<uint16_t>(m.y);
+	return p;
+}
+
 inline void map_set(Map& map, int i, bool value)
 {
 	assert(0 <= i && i < map.width * map.height);
-	map.bitmap[i] = value;
+	uint32_t loc = map.bitarray[(i >> 3)];
+	uint32_t shift = i & 7;
+	loc &= ~(static_cast<uint32_t>(1u) << shift); // clear loc bit
+	loc |= static_cast<uint32_t>(value) << shift; // set loc bit
+	map.bitarray[(i >> 3)] = static_cast<uint8_t>(loc);
 }
 inline bool map_get(const Map& map, int i)
 {
 	assert(0 <= i && i < map.width * map.height);
-	return map.bitmap[i];
+	return ( map.bitarray[(i >> 3)] >> (i & 7) ) & 1;
 }
 inline bool map_get(const Map& map, int x, int y)
 {
 	assert(0 <= x && x < map.width);
 	assert(0 <= y && y < map.height);
-	return map.bitmap[map.width * y + x];
+	return map_get(map, map.width * y + x);
+}
+// return allocation size
+inline size_t map_bytes(int width, int height)
+{
+	// count bits
+	size_t count = static_cast<size_t>(width) * static_cast<size_t>(height);
+	// divide to bytes, round up
+	return (count + 7) >> 3;
 }
 
 inline bool point_in_bounds(const Map& map, int x, int y) noexcept
@@ -114,7 +145,8 @@ inline bool load_map_data(std::istream& in, Map &map, std::pmr::memory_resource*
 		return false;
 	map.width = width;
 	int cells = map.height * map.width;
-	map.bitmap = std::pmr::vector<bool>(cells, false, res);
+	// no need to call res->deallocate
+	map.bitarray = static_cast<uint8_t*>(res->allocate(map_bytes(map.width, map.height), 1));
 	// read body
 	if (!(in >> std::setw(8) >> buffer))
 		return false;
@@ -146,5 +178,7 @@ inline bool load_map_data(std::istream& in, Map &map, std::pmr::memory_resource*
 	}
 	return true;
 }
+
+} // namespace GPPC
 
 #endif // GPPC_MAPLOADER_H

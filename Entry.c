@@ -14,7 +14,7 @@ void *gppc_search_init(struct gppc_patch active_map, const char* preprocess_file
 }
 
 
-void gppc_map_change(void *data, struct gppc_patch* changes, uint32_t changes_length)
+void gppc_map_change(void *data, const struct gppc_patch* changes, uint32_t changes_length)
 {
 	// ON MAP CHANGE IMPLEMENT
 }

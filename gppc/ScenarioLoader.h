@@ -30,9 +30,11 @@ SOFTWARE.
 #include <memory_resource>
 #include <cassert>
 #include <cstdint>
+#include "GPPC.h"
 #include "MapLoader.h"
+#include "Entry.h"
 
-constexpr size_t GPPC_PATCH_LIMIT = 100'000'000;
+namespace GPPC {
 
 /** 
  * Experiments stored by the ScenarioLoader class. 
@@ -127,16 +129,20 @@ public:
 	int nextQuery();
 	Query getCurrentQuery() const;
 	bool done() { return commandAt >= commandCount; }
-	const Map& getActiveMap() const noexcept { return activeMap; }
+	::gppc_patch getActiveMap() const noexcept { return to_gppc_patch(activeMap); }
+	Map getActiveMapReal() const noexcept { return activeMap; }
 	const auto& getAppliedPatches() const noexcept { return appliedPatch; }
 
 private:
 	const ScenarioLoader* scenario;
+	std::unique_ptr<uint8_t[]> activeMapData;
 	Map activeMap;
-	std::vector<Patch> appliedPatch;
+	std::vector<::gppc_patch> appliedPatch;
 	int scenarioAt;
 	int commandAt;
 	int commandCount;
 };
+
+} // namespace GPPC
 
 #endif // GPPC_SCENARIOLOADER_H

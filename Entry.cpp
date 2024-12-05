@@ -13,7 +13,7 @@ void *gppc_search_init(gppc_patch active_map, const char* preprocess_filename)
 }
 
 
-void gppc_map_change(void *data, gppc_patch* changes, uint32_t changes_length)
+void gppc_map_change(void *data, const gppc_patch* changes, uint32_t changes_length)
 {
   auto* STS = static_cast<baseline::SpanningTreeSearch*>(data);
   // SpanningTreeSearch must update its internal structure.

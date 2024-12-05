@@ -22,6 +22,8 @@ SOFTWARE.
 
 #include "Timer.h"
 
+namespace GPPC {
+
 Timer::Timer()
 {
 	elapsedTime = duration::zero();
@@ -39,3 +41,5 @@ Timer::duration Timer::EndTimer()
 	elapsedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(stopTime - startTime);
 	return elapsedTime;
 }
+
+} // namespace GPPC

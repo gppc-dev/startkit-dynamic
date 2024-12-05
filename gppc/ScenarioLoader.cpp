@@ -25,6 +25,8 @@ SOFTWARE.
 #include <iomanip>
 #include <fstream>
 
+namespace GPPC {
+
 /** 
  * Loads the experiments from the scenario file. 
  */
@@ -206,7 +208,10 @@ void ScenarioRunner::linkScen(const ScenarioLoader& scen)
 	scenario = &scen;
 	activeMap.width = scen.getWidth();
 	activeMap.height = scen.getHeight();
-	activeMap.bitmap.assign(scen.getWidth() * scen.getHeight(), true);
+	size_t bytes_size = map_bytes(activeMap.width, activeMap.height);
+	activeMapData = std::make_unique<uint8_t[]>(bytes_size);
+	std::fill_n(activeMapData.get(), bytes_size, static_cast<uint8_t>(~0u));
+	activeMap.bitarray = activeMapData.get();
 	appliedPatch.clear();
 	scenarioAt = -1;
 	commandAt = -1;
@@ -230,7 +235,7 @@ int ScenarioRunner::nextQuery()
 		const Map& patch_grid = scenario->getPatches()[cmd.cmd.patch.id];
 		Patch patch{&patch_grid, cmd.cmd.patch.x, cmd.cmd.patch.y};
 		apply_patch(activeMap, patch);
-		appliedPatch.push_back(std::move(patch));
+		appliedPatch.push_back(to_gppc_patch(patch));
 	}
 	// reached past last command or query
 	commandAt += command_done;
@@ -258,3 +263,5 @@ Query ScenarioRunner::getCurrentQuery() const
 	query.cost = scenario->getQueryCost().at(scenarioAt);
 	return query;
 }
+
+} // namespace GPPC

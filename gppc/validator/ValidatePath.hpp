@@ -27,8 +27,9 @@ SOFTWARE.
 #include <cstddef>
 #include <cassert>
 #include <cstdlib>
+#include <MapLoader.h>
 
-namespace inx {
+namespace GPPC {
 
 using std::size_t;
 
@@ -48,8 +49,8 @@ bool operator!=(Point lhs, Point rhs) noexcept { return lhs.x != rhs.x || lhs.y 
 class PathValidator
 {
 public:
-	PathValidator(const std::vector<bool>& map, int width, int height)
-		: m_map(&map), m_width(static_cast<size_t>(width)), m_height(static_cast<size_t>(height))
+	PathValidator(Map map)
+		: m_map(map)
 	{ }
 
 	bool get(Point u) const noexcept
@@ -58,13 +59,14 @@ public:
 	}
 	bool get(int x, int y) const noexcept
 	{
-		assert(static_cast<size_t>(x) < m_width && static_cast<size_t>(y) < m_height);
-		return (*m_map)[y * m_width + x];
+		return map_get(m_map, y * m_map.width + x);
 	}
 
 	bool validPoint(Point u) const noexcept
 	{
-		return static_cast<size_t>(u.x) < m_width && static_cast<size_t>(u.y) < m_height && get(u);
+		return static_cast<size_t>(u.x) < static_cast<size_t>(m_map.width) &&
+			static_cast<size_t>(u.y) < static_cast<size_t>(m_map.height) &&
+			get(u);
 	}
 
 	bool validEdge(Point u, Point v) const noexcept
@@ -118,20 +120,18 @@ private:
 	}
 
 private:
-	const std::vector<bool>* m_map;
-	size_t m_width;
-	size_t m_height;
+	Map m_map;
 };
 
 template <typename PathContainer>
-int ValidatePath(const std::vector<bool>& map, int width, int height, const PathContainer& thePath)
+int ValidatePath(const Map& map, const PathContainer& thePath)
 {
 	size_t S = static_cast<size_t>(thePath.size());
 	if (S == 0)
 		return -1;
 	if (S == 1)
 		return 0;
-	PathValidator validator(map, width, height);
+	PathValidator validator(map);
 	// check each point in path
 	for (size_t i = 0; i < S; ++i) {
 		Point u{static_cast<int>(thePath[i].x), static_cast<int>(thePath[i].y)};
@@ -148,6 +148,6 @@ int ValidatePath(const std::vector<bool>& map, int width, int height, const Path
 	return -1;
 }
 
-} // namespace inx
+} // namespace GPPC
 
 #endif // GPPC_VALIDATEPATH_HPP
