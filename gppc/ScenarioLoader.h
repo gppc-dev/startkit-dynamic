@@ -53,14 +53,11 @@ struct Command
 	union {
 		struct {
 			uint32_t id;
-			uint16_t x;
-			uint16_t y;
+			::gppc_point pos;
 		} patch;
 		struct {
-			uint16_t sx;
-			uint16_t sy;
-			uint16_t gx;
-			uint16_t gy;
+			::gppc_point start;
+			::gppc_point goal;
 			// double dist; stored out of command
 		} query;
 	} cmd;
@@ -70,10 +67,8 @@ struct Query
 {
 	int32_t query_id;
 	int32_t bucket;
-	uint16_t sx;
-	uint16_t sy;
-	uint16_t gx;
-	uint16_t gy;
+	::gppc_point start;
+	::gppc_point goal;
 	double cost;
 };
 

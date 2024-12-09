@@ -122,22 +122,22 @@ bool ScenarioLoader::load(std::istream& in, const std::filesystem::path& scenFil
 		if (tmp == "P") {
 			// patch
 			Command cmd = {Command::Type::patch, 0, { .patch = {} }};
-			in >> cmd.bucket >> cmd.cmd.patch.id >> cmd.cmd.patch.x >> cmd.cmd.patch.y;
+			in >> cmd.bucket >> cmd.cmd.patch.id >> cmd.cmd.patch.pos.x >> cmd.cmd.patch.pos.y;
 			// check is valid patch
 			if (int pid = cmd.cmd.patch.id; pid < 0 && pid >= static_cast<int>(patchGrid.size()))
 				return false;
 			const Map& grid = patchGrid[cmd.cmd.patch.id];
-			if (!patch_in_bounds(bounds_check, Patch{&grid, cmd.cmd.patch.x, cmd.cmd.patch.y}))
+			if (!patch_in_bounds(bounds_check, Patch{&grid, cmd.cmd.patch.pos.x, cmd.cmd.patch.pos.y}))
 				return false;
 			commands.push_back(cmd);
 			patchCommands += 1;
 		} else if (tmp == "Q") {
 			// query
 			Command cmd = {Command::Type::query, 0, { .query = {} }};
-			in >> cmd.bucket >> cmd.cmd.query.sx >> cmd.cmd.query.sy >> cmd.cmd.query.gx >> cmd.cmd.query.gy;
-			if (!point_in_bounds(bounds_check, cmd.cmd.query.sx, cmd.cmd.query.sy))
+			in >> cmd.bucket >> cmd.cmd.query.start.x >> cmd.cmd.query.start.y >> cmd.cmd.query.goal.x >> cmd.cmd.query.goal.y;
+			if (!point_in_bounds(bounds_check, cmd.cmd.query.start.x, cmd.cmd.query.start.y))
 				return false;
-			if (!point_in_bounds(bounds_check, cmd.cmd.query.gx, cmd.cmd.query.gy))
+			if (!point_in_bounds(bounds_check, cmd.cmd.query.goal.x, cmd.cmd.query.goal.y))
 				return false;
 			// read all costs and select the one we want
 			double query_dist{};
@@ -233,7 +233,7 @@ int ScenarioRunner::nextQuery()
 		assert(cmd.type == Command::Type::patch); // must be patch
 		// apply patch
 		const Map& patch_grid = scenario->getPatches()[cmd.cmd.patch.id];
-		Patch patch{&patch_grid, cmd.cmd.patch.x, cmd.cmd.patch.y};
+		Patch patch{&patch_grid, cmd.cmd.patch.pos.x, cmd.cmd.patch.pos.y};
 		apply_patch(activeMap, patch);
 		appliedPatch.push_back(to_gppc_patch(patch));
 	}
@@ -256,10 +256,8 @@ Query ScenarioRunner::getCurrentQuery() const
 	Query query;
 	query.query_id = scenarioAt;
 	query.bucket = cmd.bucket;
-	query.sx = cmd.cmd.query.sx;
-	query.sy = cmd.cmd.query.sy;
-	query.gx = cmd.cmd.query.gx;
-	query.gy = cmd.cmd.query.gy;
+	query.start = cmd.cmd.query.start;
+	query.goal = cmd.cmd.query.goal;
 	query.cost = scenario->getQueryCost().at(scenarioAt);
 	return query;
 }

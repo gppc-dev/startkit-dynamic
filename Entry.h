@@ -30,20 +30,40 @@ extern "C" {
 #include <inttypes.h>
 #include <assert.h>
 
-struct gppc_patch
+struct gppc_point
 {
-	const uint8_t *bitarray;
-	uint16_t width;
-	uint16_t height;
 	uint16_t x;
 	uint16_t y;
 };
 
 struct gppc_path
 {
-  const uint16_t *path; /// store array of size 2*len, path expected as pairs of x,y values. Allows NULL only if length=0.
-  uint32_t length; /// length of the (x,y) pairs path
+  const struct gppc_point *path; /// store array of size length. Allows NULL only if length=0.
+  uint32_t length; /// length of the (x,y) pairs path.
   uint8_t incomplete; /// boolean for incomplete path, if 1 then contest will call gppc_get_path again.
+};
+
+/**
+ * Array of a 2D table.  (0,0) is located at top-left corner.
+ * Packed in a 1D bitarray, row-by-row.
+ * Use `gppc_patch_get` or `gppc_patch_get_xy` on how to access grid cells.
+ * 2D (x,y) point is converted to id in array: y * width + x
+ * Data stored in `bitarray` as bits into 1-byte integers, then lsb ordering.
+ * Example bit access for i: bitarray[i / 8] & (1 << i % 8), or see access functions.
+ * gppc_patch_get(i) gives bit for index i, 1=traversable, 0=blocker.
+ * 
+ * pos is the location to apply the patch, more details in gppc_map_change.
+ *
+ * Any bitarray pointer lifetime guarantee until `gppc_free_data` is called and returns.
+ * IMPORTANT: bitarray is constant and should not be modified, changing will affect client-side
+ * validation but not server-side validation.
+ */
+struct gppc_patch
+{
+	const uint8_t *bitarray;
+	uint16_t width;
+	uint16_t height;
+	struct gppc_point pos;
 };
 
 /**
@@ -64,41 +84,41 @@ inline int gppc_patch_get_xy(struct gppc_patch patch, uint16_t x, uint16_t y)
 
 /**
  * User code used during preprocessing of a map.  Can be left blank if no pre-processing is required.
- * It will not be called in the same program execution as `PrepareForSearch` is called,
- * all data must be shared through file.
+ * It will not be called in the same program execution as `gppc_search_init` is called,
+ * all data must be shared in the preprocess_filename file.
  * 
  * Called with command below:
  * ./run -pre file.scen
  * 
- * @param[in] init_map Array of 2D table.  (0,0) is located at top-left corner.
- *                     Packed as 1D array, row-by-ray, i.e. first width bool's give row y=0, next width y=1
- *                     init_map.bitarray[i] returns `true` if (x,y) is traversable, `false` otherwise.
- *                     init_map gives width/height of whole map.  init_map x/y are always 0 here.
- *                     See gppc_patch_get and gppc_patch_get_xy for more on how the data is arranged.
+ * @param[in] init_map The starting full map. width/height is the search grid's width/height, pos = (0,0).
+ *                     Guarantee to be same to map given in `gppc_search_init` and map state valid in
+ *                     first query from `gppc_get_path`.
  * @param[in] preprocess_filename The filename you write the preprocessing data to.  Open in write mode.
+ *                                Guarantee that contents written to preprocess_filename is same content
+ *                                as file given to `gppc_search_init` preprocess_filename.
  */
 void gppc_preprocess_init_map(struct gppc_patch init_map, const char* preprocess_filename);
 
 
 /**
- * User code used to setup search before queries.  Can also load pre-processing data from file to speed load.
- * It will not be called in the same program execution as `PreprocessMap` is called,
+ * User code used to setup search before queries.  Can also load pre-processing data from file preprocess_filename.
+ * It will not be called in the same program execution as `gppc_preprocess_init_map` is called,
  * all data must be shared through file.
  * 
- * active_map holds the pointer to the current map state.  The pointer active_map.bitarray is guaranteed
- * to always be valid and up to date on every function call.
- * active_map is guaranteed to be the same as init_map called in gppc_preprocess_init_map.
+ * active_map holds the pointer to the entire initial map.
+ * The pointer active_map.bitarray lifetime holds gppc_patch guarantee until after gppc_free_data returns.
+ * active_map width/height is the maximum dimensions of any gppc_patch. pos = (0,0)
+ * All dynamic changes to map will be applied to active_map.bitarray before call to gppc_map_change is made.
+ * 
+ * Return pointer is data the user can allocate on heap and share with other function calls.
+ * This pointer should remain in scope until gppc_free_data, which should clean up.
  * 
  * Called with any commands below:
  * ./run -run file.map.scen
  * ./run -check file.map.scen
  * 
- * @param[in] active_map Array of 2D table.  (0,0) is located at top-left corner.
- *                       Packed as 1D array, row-by-ray, i.e. first width bool's give row y=0, next width y=1
- *                       init_map.bitarray[i] returns `true` if (x,y) is traversable, `false` otherwise.
- *                       init_map gives width/height of whole map.  init_map x/y are always 0 here.
- *                       See gppc_patch_get and gppc_patch_get_xy for more on how the data is arranged.
- * @param[in] preprocess_filename The filename for the preprocessed data on init_map, if using.  Open in read mode.
+ * @param[in] active_map The starting full map.
+ * @param[in] preprocess_filename The filename for the preprocessed data from gppc_preprocess_init_map, if using.  Open in read mode.
  * @return User data to be provided to other calls.
  */
 void *gppc_search_init(struct gppc_patch active_map, const char* preprocess_filename);
@@ -108,6 +128,8 @@ void *gppc_search_init(struct gppc_patch active_map, const char* preprocess_file
  * This will only be called when the map changes between queries.
  * It is guaranteed that active_map from gppc_search_init has already applied all patches
  * in changes.
+ * 
+ * changes provides a set of patch changes.  Each gppc_patch is applied by 
  * 
  * Called with any commands below:
  * ./run -run file.map file.map.scen
@@ -132,12 +154,12 @@ void gppc_map_change(void *data, const struct gppc_patch* changes, uint32_t chan
  * The User should free this allocation on call to gppc_free_search_data.
  * 
  * @param[in] data User data from gppc_search_init.
- * @param[in] sx,sy Starting x/y point.
- * @param[in] gx,gy Goal x/y point.
+ * @param[in] start Query start location.
+ * @param[in] goal Query goal location.
  * @return The user-provided path. Set incomplete=0 once path is found. Set length=0 for no possible path.
  *         Can return gppc_path{} for valid no possible path.
 */
-struct gppc_path gppc_get_path(void *data, uint16_t sx, uint16_t sy, uint16_t gx, uint16_t gy);
+struct gppc_path gppc_get_path(void *data, struct gppc_point start, struct gppc_point goal);
 
 
 /**

@@ -22,10 +22,10 @@ void gppc_map_change(void *data, const gppc_patch* changes, uint32_t changes_len
 }
 
 
-gppc_path gppc_get_path(void *data, uint16_t sx, uint16_t sy, uint16_t gx, uint16_t gy)
+gppc_path gppc_get_path(void *data, gppc_point start, gppc_point goal)
 {
   auto* STS = static_cast<baseline::SpanningTreeSearch*>(data);
-  bool exists = STS->search(baseline::Point(sx, sy), baseline::Point(gx, gy));
+  bool exists = STS->search(baseline::Point(start.x, start.y), baseline::Point(goal.x, goal.y));
   if (!exists)
     return gppc_path{};
   

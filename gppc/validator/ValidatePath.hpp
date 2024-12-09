@@ -28,23 +28,42 @@ SOFTWARE.
 #include <cassert>
 #include <cstdlib>
 #include <MapLoader.h>
+#include <cmath>
 
-namespace GPPC {
+namespace GPPC::validate {
 
 using std::size_t;
 
 struct alignas(size_t)
 Point
 {
-	int x;
-	int y;
+	int32_t x;
+	int32_t y;
 };
 
-Point operator+(Point lhs, Point rhs) noexcept { return Point{lhs.x + rhs.x, lhs.y + rhs.y}; }
-Point operator-(Point lhs, Point rhs) noexcept { return Point{lhs.x - rhs.x, lhs.y - rhs.y}; }
+inline Point operator+(Point lhs, Point rhs) noexcept { return Point{lhs.x + rhs.x, lhs.y + rhs.y}; }
+inline Point operator-(Point lhs, Point rhs) noexcept { return Point{lhs.x - rhs.x, lhs.y - rhs.y}; }
 
-bool operator==(Point lhs, Point rhs) noexcept { return lhs.x == rhs.x && lhs.y == rhs.y; }
-bool operator!=(Point lhs, Point rhs) noexcept { return lhs.x != rhs.x || lhs.y != rhs.y; }
+inline bool operator==(Point lhs, Point rhs) noexcept { return lhs.x == rhs.x && lhs.y == rhs.y; }
+inline bool operator!=(Point lhs, Point rhs) noexcept { return lhs.x != rhs.x || lhs.y != rhs.y; }
+
+
+inline long double EuclideanDist(Point a, Point b) {
+	int64_t dx = std::abs(static_cast<int64_t>(b.x) - a.x);
+	int64_t dy = std::abs(static_cast<int64_t>(b.y) - a.y);
+	long double res = std::sqrt(static_cast<long double>(dx * dx) + static_cast<long double>(dy * dy));
+	return res;
+}
+
+inline long double GetPathLength(const std::vector<Point>& path)
+{
+	if (path.empty())
+		return -1;
+	long double len = 0;
+	for (int x = 0, xe = (int)path.size()-1; x < xe; x++)
+		len += EuclideanDist(path[x], path[x+1]);
+	return len;
+}
 
 class PathValidator
 {
@@ -124,7 +143,7 @@ private:
 };
 
 template <typename PathContainer>
-int ValidatePath(const Map& map, const PathContainer& thePath)
+inline int ValidatePath(const Map& map, const PathContainer& thePath)
 {
 	size_t S = static_cast<size_t>(thePath.size());
 	if (S == 0)
@@ -148,6 +167,6 @@ int ValidatePath(const Map& map, const PathContainer& thePath)
 	return -1;
 }
 
-} // namespace GPPC
+} // namespace GPPC::validate
 
 #endif // GPPC_VALIDATEPATH_HPP

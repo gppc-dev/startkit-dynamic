@@ -30,18 +30,23 @@ extern "C" {
 #include <inttypes.h>
 #include <assert.h>
 
+struct gppc_point
+{
+	uint16_t x;
+	uint16_t y;
+};
+
 struct gppc_patch
 {
 	const uint8_t *bitarray;
 	uint16_t width;
 	uint16_t height;
-	uint16_t x;
-	uint16_t y;
+	struct gppc_point pos;
 };
 
 struct gppc_path
 {
-  const uint16_t *path; /// store array of size 2*len, path expected as pairs of x,y values. Allows NULL only if length=0.
+  const struct gppc_point *path; /// store array of size 2*len, path expected as pairs of x,y values. Allows NULL only if length=0.
   uint32_t length; /// length of the (x,y) pairs path
   uint8_t incomplete; /// boolean for incomplete path, if 1 then contest will call gppc_get_path again.
 };
@@ -137,17 +142,17 @@ void gppc_map_change(void *data, const struct gppc_patch* changes, uint32_t chan
  * @return The user-provided path. Set incomplete=0 once path is found. Set length=0 for no possible path.
  *         Can return gppc_path{} for valid no possible path.
 */
-struct gppc_path gppc_get_path(void *data, uint16_t sx, uint16_t sy, uint16_t gx, uint16_t gy);
+struct gppc_path gppc_get_path(void *data, struct gppc_point start, struct gppc_point goal);
 
 
 /**
- * Cleans up search data
+ * Cleans up search data.
 */
 void gppc_free_data(void *data);
 
 
 /**
- * @return Get entry name.
+ * @return Get entry name.  Must be valid until gppc_free_data is called.  Should be a string-literal.
 */
 const char* gppc_get_name();
 

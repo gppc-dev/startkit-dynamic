@@ -38,12 +38,12 @@ namespace GPPC {
 struct Map
 {
 	uint8_t* bitarray;
-	int width, height;
+	uint32_t width, height;
 };
 struct Patch
 {
 	const Map* map;
-	int x, y;
+	::gppc_point pos;
 };
 
 inline ::gppc_patch to_gppc_patch(Map m)
@@ -58,8 +58,7 @@ inline ::gppc_patch to_gppc_patch(Patch m)
 {
 	assert(m.map != nullptr);
 	::gppc_patch p = to_gppc_patch(*m.map);
-	p.x = static_cast<uint16_t>(m.x);
-	p.y = static_cast<uint16_t>(m.y);
+	p.pos = m.pos;
 	return p;
 }
 
@@ -105,9 +104,9 @@ inline bool patch_in_bounds(const Map& map, const Patch& patch) noexcept
 {
 	if (patch.map == nullptr)
 		return false;
-	if (patch.x < 0 || patch.x + patch.map->width > map.width)
+	if (static_cast<uint32_t>(patch.pos.x) + patch.map->width > map.width)
 		return false;
-	if (patch.y < 0 || patch.y + patch.map->height > map.height)
+	if (static_cast<uint32_t>(patch.pos.y) + patch.map->height > map.height)
 		return false;
 	return true;
 }
@@ -116,7 +115,7 @@ inline void apply_patch(Map& map, Patch patch)
 {
 	assert(patch_in_bounds(map, patch));
 	int map_width = map.width;
-	int map_i = patch.y * map_width + patch.x;
+	int map_i = patch.pos.y * map_width + patch.pos.x;
 	int patch_i = 0;
 	int patch_width = patch.map->width;
 	int patch_height = patch.map->height;
@@ -129,55 +128,7 @@ inline void apply_patch(Map& map, Patch patch)
 	}
 }
 
-inline bool load_map_data(std::istream& in, Map &map, std::pmr::memory_resource* res = nullptr)
-{
-	char buffer[static_cast<int>(GPPC_HARD_MAP_LIMIT) + 10];
-	int width, height;
-	// read header
-	if (!(in >> std::setw(8) >> buffer >> height))
-		return false;
-	if (std::strcmp(buffer, "height") != 0 || height < 1 || height > static_cast<int>(GPPC_HARD_MAP_LIMIT))
-		return false;
-	map.height = height;
-	if (!(in >> std::setw(8) >> buffer >> width))
-		return false;
-	if (std::strcmp(buffer, "width") != 0 || width < 1 || width > static_cast<int>(GPPC_HARD_MAP_LIMIT))
-		return false;
-	map.width = width;
-	int cells = map.height * map.width;
-	// no need to call res->deallocate
-	map.bitarray = static_cast<uint8_t*>(res->allocate(map_bytes(map.width, map.height), 1));
-	// read body
-	if (!(in >> std::setw(8) >> buffer))
-		return false;
-	if (std::strcmp(buffer, "map") != 0)
-		return false;
-	for (int y = 0, i = 0; y < height; ++y) {
-		// read row
-		in >> std::ws;
-		if (!in.read(buffer, width) || in.gcount() != width)
-			return false;
-		if (auto c = in.peek(); c != std::istream::traits_type::eof() && !std::isspace(static_cast<unsigned char>(c)))
-			return false; // not delimited by whitespace or eof
-		for (int x = 0; x < width; ++x, ++i) {
-			switch (buffer[x]) {
-			case '.':
-			case 'G':
-			case 'S':
-				map_set(map, i, true);
-				break;
-			case '@':
-			case 'O':
-			case 'T':
-			case 'W':
-				break;
-			default: // unknown character
-				return false;
-			}
-		}
-	}
-	return true;
-}
+bool load_map_data(std::istream& in, Map &map, std::pmr::memory_resource* res = nullptr);
 
 } // namespace GPPC
 

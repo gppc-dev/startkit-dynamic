@@ -87,21 +87,21 @@ struct SpanningTreeSearch : Grid
 	{
 		setup_grid(*this);
 	}
-	std::array<std::vector<uint16_t>, 2> path_parts;
-	const std::vector<uint16_t>& get_path() const noexcept { return path_parts[0]; }
+	std::array<std::vector<gppc_point>, 2> path_parts;
+	const std::vector<gppc_point>& get_path() const noexcept { return path_parts[0]; }
 	// bool search found a path
 	bool search(Point s, Point g)
 	{
-		auto&& push_back = [](std::vector<uint16_t>& path, Point p) {
-			path.push_back((uint16_t)p.first);
-			path.push_back((uint16_t)p.second);
+		auto&& push_back = [](std::vector<gppc_point>& path, Point p) {
+			path.push_back(gppc_point{static_cast<uint16_t>(p.first), static_cast<uint16_t>(p.second)});
 		};
 		std::array<uint32_t, 2> nodeid{{pack(s), pack(g)}};
 		if (nodes[nodeid[0]].pred == Node::INV || nodes[nodeid[1]].pred == Node::INV)
 			return false;
 		if (nodeid[0] == nodeid[1]) {
 			// zero path case
-			path_parts[0].assign({(uint16_t)s.first, (uint16_t)s.second, (uint16_t)g.first, (uint16_t)g.second});
+			path_parts[0].assign({gppc_point{(uint16_t)s.first, (uint16_t)s.second}, 
+				gppc_point{(uint16_t)g.first, (uint16_t)g.second}});
 			return true;
 		}
 		path_parts[0].clear(); path_parts[1].clear();
@@ -122,11 +122,7 @@ struct SpanningTreeSearch : Grid
 			push_back(path_parts[progressId], unpack(nodeid[progressId]));
 			nodeid[progressId] = nodes[nodeid[progressId]].pred;
 		}
-		// finalise path
-		for (int i = path_parts[1].size() - 2; i >= 0; i -= 2) {
-			path_parts[0].push_back(path_parts[1][i]); // x
-			path_parts[0].push_back(path_parts[1][i+1]); // y
-		}
+		path_parts[0].insert(path_parts[0].end(), path_parts[1].rbegin(), path_parts[1].rend());
 		return true;
 	}
 };

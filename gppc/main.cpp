@@ -34,7 +34,7 @@ SOFTWARE.
 #include "GPPC.h"
 #include "ScenarioLoader.h"
 #include "Timer.h"
-#include "validator/ValidatePath.hpp"
+#include "validator/ValidateSerialize.hpp"
 #include "Entry.h"
 
 #if __linux__
@@ -48,14 +48,16 @@ SOFTWARE.
 
 namespace GPPC {
 
-double EuclideanDist(xyLoc a, xyLoc b) {
-	int64_t dx = std::abs(b.x - a.x);
-	int64_t dy = std::abs(b.y - a.y);
+using path_type = std::vector<::gppc_point>;
+
+double EuclideanDist(::gppc_point a, ::gppc_point b) {
+	int64_t dx = std::abs((int64_t)b.x - (int64_t)a.x);
+	int64_t dy = std::abs((int64_t)b.y - (int64_t)a.y);
 	long double res = std::sqrt(static_cast<long double>(dx * dx) + static_cast<long double>(dy * dy));
 	return res;
 }
 
-long double GetPathLength(const std::vector<xyLoc>& path)
+long double GetPathLength(const path_type& path)
 {
 	long double len = 0;
 	for (int x = 0, xe = (int)path.size()-1; x < xe; x++)
@@ -90,23 +92,23 @@ public:
 		std::printf("\t-check: Run for validation\n");
 	}
 
-	// returns -1 if valid path, otherwise id of segment where invalidness was detetcted
-	int ValidatePath(const Map& activeMap, const std::vector<xyLoc>& thePath)
-	{
-		return GPPC::ValidatePath(activeMap, thePath);
-	}
-
 	int RunExperiment(ScenarioRunner& run, void* data) {
 		Timer t;
-		std::vector<xyLoc> thePath;
+		path_type thePath;
 		thePath.reserve(1024);
+
+		validate::Serialize validator;
+		if (check) {
+			validator.Setup(run.getActiveMapReal(), std::cout);
+			validator.PrintHeader();
+		}
 
 		std::string resultfile = "result.csv";
 		std::ofstream fout(resultfile);
 		const std::string header = "scen,experiment_id,path_size,path_length,ref_length,time_cost,20steps_cost,max_step_time";
 
 		fout << header << std::endl;
-		for (int query_id = 0; ; query_id++)
+		for (int query_id = 0, state_id = 0; ; query_id++)
 		{
 			if (query_id != 0) {
 				int patch_changes = run.nextQuery();
@@ -114,16 +116,17 @@ public:
 					break; // no more queries
 				else if (patch_changes != 0) {
 					// map changed
+					state_id++;
 					auto& patches = run.getAppliedPatches();
 					::gppc_map_change(data, patches.data(), patches.size());
 				}
 			}
-			xyLoc s, g;
 			auto scen = run.getCurrentQuery();
-			s.x = scen.sx;
-			s.y = scen.sy;
-			g.x = scen.gx;
-			g.y = scen.gy;
+			if (check)
+				validator.AddQuery({query_id, state_id,
+					{scen.start.x, scen.start.y},
+					{scen.goal.x, scen.goal.y},
+					scen.cost});
 
 			thePath.clear();
 			typedef Timer::duration dur;
@@ -132,29 +135,32 @@ public:
 			::gppc_path result_path;
 			do {
 				t.StartTimer();
-				result_path = ::gppc_get_path(data,
-					static_cast<uint16_t>(s.x), static_cast<uint16_t>(s.y),
-					static_cast<uint16_t>(g.x), static_cast<uint16_t>(g.y));
+				result_path = ::gppc_get_path(data, scen.start, scen.goal);
 				t.EndTimer();
 				// move result_path into thePath
 				done = !result_path.incomplete;
 				if (result_path.length < 0) {
 					std::cerr << "Negative path length provided (" << result_path.length << ")\n";
 					return 2;
+				} else if (result_path.path == nullptr && result_path.length > 0) {
+					std::cerr << "Null path has length > 0 (" << result_path.length << ")\n";
+					return 2;
 				}
-				thePath.resize(result_path.length);
-				for (int i = 0; i < result_path.length; ++i) {
-					thePath[i].x = result_path.path[2*i];
-					thePath[i].y = result_path.path[2*i + 1];
-				}
+				if (result_path.path == nullptr)
+					thePath.clear();
+				else
+					thePath.assign(result_path.path, result_path.path + result_path.length);
 				max_step = std::max(max_step, t.GetElapsedTime());
 				tcost += t.GetElapsedTime();
-				// TODO: not checking path validate every check
 				if (!done_first) {
 					tcost_first += t.GetElapsedTime();
 					done_first = GetPathLength(thePath) >= PATH_FIRST_STEP_LENGTH - 1e-6;
 				}
+				if (check)
+					validator.AddPath(thePath, !done);
 			} while (!done);
+			if (check)
+				validator.FinQuery();
 			double plen = done?GetPathLength(thePath): 0;
 			double ref_len = scen.cost;
 
@@ -166,20 +172,6 @@ public:
 					<< tcost.count() << "," << tcost_first.count() << ","
 					<< max_step.count() << std::endl;
 
-			if (check) {
-				std::printf("%d %d %d %d", s.x, s.y, g.x, g.y);
-				int validness = ValidatePath(run.getActiveMapReal(), thePath);
-				if (validness < 0) {
-					std::printf(" valid");
-				} else {
-					std::printf(" invalid-%d", validness);
-				}
-				std::printf(" %d", static_cast<int>(thePath.size()));
-				for (const auto& it: thePath) {
-					std::printf(" %d %d", it.x, it.y);
-				}
-				std::printf(" %.5f\n", plen);
-			}
 		}
 		return 0;
 	}

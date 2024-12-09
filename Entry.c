@@ -20,7 +20,7 @@ void gppc_map_change(void *data, const struct gppc_patch* changes, uint32_t chan
 }
 
 
-struct gppc_path gppc_get_path(void *data, uint16_t sx, uint16_t sy, uint16_t gx, uint16_t gy)
+struct gppc_path gppc_get_path(void *data, struct gppc_point start, struct gppc_point goal)
 {
 	assert(0);
 	// QUERY IMPLEMENT
