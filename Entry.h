@@ -145,19 +145,29 @@ void gppc_map_change(void *data, const struct gppc_patch* changes, uint32_t chan
 
 /**
  * Find the path from (sx,sy) to (gx,gy).
- * Returns user provided gppc_path.
+ * Returns user provided gppc_path containing path segment.
  * 
- * gppc_path.path must be allocated with enough size for 2*gppc_path.length.
- * It is guaranteed that the only gppc_path used outside this function will be the last
- * call of this function.
+ * gppc_path.path must be allocated with enough size for gppc_path.length gpp_point's.
+ * It is guaranteed that gppc_path.path pointer is only used outside this library until next
+ * call to library header function.
  * User is required to manage this memory allocation, and is recommended to reuse for speed.
  * The User should free this allocation on call to gppc_free_search_data.
+ * 
+ * This function can be called multiple times for a query, based on user return values.
+ * The gppc_path.incomplete = 0 marks the final call for the query.
+ * Every call to gppc_get_path will concatenate the path for a query, so the user
+ * should only return additional path segments, not a prefix path to each call.
+ * Users who return the whole path only just need to return the whole path.
+ * The path must start with start on the first call and end with goal on the final call,
+ * except in the case where no path exists.
+ * The validator will be invoked after each gppc_get_path call.
  * 
  * @param[in] data User data from gppc_search_init.
  * @param[in] start Query start location.
  * @param[in] goal Query goal location.
- * @return The user-provided path. Set incomplete=0 once path is found. Set length=0 for no possible path.
- *         Can return gppc_path{} for valid no possible path.
+ * @return The next part (or whole) user-provided path. Set incomplete=0 once path is found.
+ *         Set incomplete=0 and length=0 for no possible path.
+ *         Can return gppc_path{} for a valid no possible path.
 */
 struct gppc_path gppc_get_path(void *data, struct gppc_point start, struct gppc_point goal);
 
