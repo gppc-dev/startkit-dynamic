@@ -20,22 +20,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "Timer.h"
+#ifndef GPPC_GPPC_H
+#define GPPC_GPPC_H
 
-Timer::Timer()
-{
-	elapsedTime = duration::zero();
-}
+#include <stdint.h>
 
-void Timer::StartTimer()
-{
-	startTime = clock::now();
-}
+namespace GPPC {
 
-Timer::duration Timer::EndTimer()
-{
-	clock::time_point stopTime = clock::now();
-	
-	elapsedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(stopTime - startTime);
-	return elapsedTime;
-}
+struct xyLoc {
+	int16_t x;
+	int16_t y;
+};
+constexpr double PATH_FIRST_STEP_LENGTH = 20.0;
+constexpr size_t GPPC_PATCH_LIMIT = 100'000'000;
+constexpr size_t GPPC_HARD_MAP_LIMIT = 8000;
+
+} // namespace GPPC
+
+#endif // GPPC_GPPC_H

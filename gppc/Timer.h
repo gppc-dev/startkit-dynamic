@@ -23,8 +23,9 @@ SOFTWARE.
 #ifndef GPPC_TIMER_H
 #define GPPC_TIMER_H
 
-#include <fstream>
 #include <chrono>
+
+namespace GPPC {
 
 class Timer {
 public:
@@ -45,5 +46,7 @@ public:
 	duration GetElapsedTime(){return elapsedTime;}
 
 };
+
+} // namespace GPPC
 
 #endif // GPPC_TIMER_H
