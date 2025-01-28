@@ -23,3 +23,5 @@ add_executable(run
 	main.cpp
 )
 target_link_libraries(run PRIVATE GPPCutility GPPCentry)
+
+install(TARGETS run)
