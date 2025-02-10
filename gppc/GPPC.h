@@ -23,7 +23,8 @@ SOFTWARE.
 #ifndef GPPC_GPPC_H
 #define GPPC_GPPC_H
 
-#include <stdint.h>
+#include <cstdint>
+#include <cstddef>
 
 namespace GPPC {
 

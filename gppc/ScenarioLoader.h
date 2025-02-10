@@ -98,6 +98,23 @@ public:
 	int getPatchCommands() const noexcept { return patchCommands; }
 	int getQueryCommands() const noexcept { return queryCommands; }
 
+	template <typename Vector>
+	void fillQueries(Vector& query) {
+		uint32_t query_id = 0;
+		for (Command C : commands) {
+			if (C.type != Command::Type::query)
+				continue;
+			Query Q{};
+			Q.query_id = query_id;
+			Q.bucket = C.bucket;
+			Q.start = C.cmd.query.start;
+			Q.goal = C.cmd.query.goal;
+			Q.cost = queryCost[query_id];
+			query_id++;
+			query.push_back(Q);
+		}
+	}
+
 private:
 	bool load_map(const std::filesystem::path& filename);
 

@@ -64,7 +64,7 @@ inline ::gppc_patch to_gppc_patch(Patch m)
 
 inline void map_set(Map& map, int i, bool value)
 {
-	assert(0 <= i && i < map.width * map.height);
+	assert(static_cast<uint32_t>(i) < map.width * map.height);
 	uint32_t loc = map.bitarray[(i >> 3)];
 	uint32_t shift = i & 7;
 	loc &= ~(static_cast<uint32_t>(1u) << shift); // clear loc bit
@@ -73,13 +73,13 @@ inline void map_set(Map& map, int i, bool value)
 }
 inline bool map_get(const Map& map, int i)
 {
-	assert(0 <= i && i < map.width * map.height);
+	assert(static_cast<uint32_t>(i) < map.width * map.height);
 	return ( map.bitarray[(i >> 3)] >> (i & 7) ) & 1;
 }
 inline bool map_get(const Map& map, int x, int y)
 {
-	assert(0 <= x && x < map.width);
-	assert(0 <= y && y < map.height);
+	assert(static_cast<uint32_t>(x) < map.width);
+	assert(static_cast<uint32_t>(y) < map.height);
 	return map_get(map, map.width * y + x);
 }
 // return allocation size
@@ -93,9 +93,9 @@ inline size_t map_bytes(int width, int height)
 
 inline bool point_in_bounds(const Map& map, int x, int y) noexcept
 {
-	if (x < 0 || x >= map.width)
+	if (static_cast<uint32_t>(x) >= map.width)
 		return false;
-	if (y < 0 || y >= map.height)
+	if (static_cast<uint32_t>(y) >= map.height)
 		return false;
 	return true;
 }
@@ -104,9 +104,9 @@ inline bool patch_in_bounds(const Map& map, const Patch& patch) noexcept
 {
 	if (patch.map == nullptr)
 		return false;
-	if (static_cast<uint32_t>(patch.pos.x) + patch.map->width > map.width)
+	if (patch.pos.x < 0 || patch.map->width > map.width || static_cast<uint32_t>(patch.pos.x) + patch.map->width > map.width)
 		return false;
-	if (static_cast<uint32_t>(patch.pos.y) + patch.map->height > map.height)
+	if (patch.pos.y < 0 || patch.map->height > map.height || static_cast<uint32_t>(patch.pos.y) + patch.map->height > map.height)
 		return false;
 	return true;
 }

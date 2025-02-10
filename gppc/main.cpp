@@ -108,7 +108,7 @@ public:
 		const std::string header = "scen,experiment_id,path_size,path_length,ref_length,time_cost,20steps_cost,max_step_time";
 
 		fout << header << std::endl;
-		for (int query_id = 0, state_id = 0; ; query_id++)
+		for (int query_id = 0; ; query_id++)
 		{
 			if (query_id != 0) {
 				int patch_changes = run.nextQuery();
@@ -116,12 +116,12 @@ public:
 					break; // no more queries
 				else if (patch_changes != 0) {
 					// map changed
-					state_id++;
 					auto& patches = run.getAppliedPatches();
 					::gppc_map_change(data, patches.data(), patches.size());
 				}
 			}
 			auto scen = run.getCurrentQuery();
+			int state_id = scen.bucket;
 			if (check)
 				validator.AddQuery({query_id, state_id,
 					{scen.start.x, scen.start.y},
@@ -157,7 +157,7 @@ public:
 					done_first = GetPathLength(thePath) >= PATH_FIRST_STEP_LENGTH - 1e-6;
 				}
 				if (check)
-					validator.AddPath(thePath, !done);
+					validator.AddSubPath(thePath, !done);
 			} while (!done);
 			if (check)
 				validator.FinQuery();
