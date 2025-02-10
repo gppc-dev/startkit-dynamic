@@ -39,7 +39,6 @@ bool load_map_data(std::istream &in, Map &map, std::pmr::memory_resource *res)
 	if (std::strcmp(buffer, "width") != 0 || width < 1 || width > static_cast<int>(GPPC_HARD_MAP_LIMIT))
 		return false;
 	map.width = width;
-	int cells = map.height * map.width;
 	// no need to call res->deallocate
 	map.bitarray = static_cast<uint8_t*>(res->allocate(map_bytes(map.width, map.height), 1));
 	// read body

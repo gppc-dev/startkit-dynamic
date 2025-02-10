@@ -25,6 +25,7 @@ SOFTWARE.
 
 #include "ValidatePath.hpp"
 #include <iostream>
+#include <sstream>
 #include <ScenarioLoader.h>
 
 namespace GPPC::validate {
@@ -38,17 +39,24 @@ struct Query {
 };
 
 enum class State : uint8_t {
-	Begin,
 	Incomplete,
 	StartMismatch, /// start incorrect
 	GoalMismatch, /// goal incorrect
-	PrefixMismatch, /// path 
 	InvalidEdge, /// invlid path segment
-	Complete
+	Complete,
+	EmptyPath
 };
 struct Check {
 	State code;
 	int value; /// code == InvalidEdge: segment no; code == InvalidPrefix: mismatch pos
+};
+enum class Command : uint8_t {
+	Invalid,
+	Eof,
+	Query,
+	Path,
+	Eval,
+	Final,
 };
 
 
@@ -56,22 +64,26 @@ class Serialize
 {
 public:
 	Serialize();
+	/**
+	 * @param map Dynamic map state. Must be kept inscope and up to date outside of this class.
+	 * @param out Where to print output to.
+	 */
 	void Setup(Map map, std::ostream& out);
 	void PrintHeader();
 	void AddQuery(Query Q);
 	template <typename PathContainer>
-	void AddPath(const PathContainer& path, bool incomplete)
+	void AddSubPath(const PathContainer& path, bool incomplete)
 	{
 		m_currentPath.clear();
 		for (const auto& p : path) {
 			m_currentPath.push_back(Point{static_cast<int>(p.x), static_cast<int>(p.y)});
 		}
-		AddPath(m_currentPath, incomplete);
+		AddSubPath(m_currentPath, incomplete);
 	}
 	/**
 	 * @param incomplete Path is incomplete.
 	 */
-	void AddPath(const std::vector<Point>& path, bool incomplete);
+	void AddSubPath(const std::vector<Point>& path, bool incomplete);
 	void FinQuery();
 
 	void ClearState();
@@ -84,8 +96,88 @@ private:
 	Query m_current;
 	std::vector<Point> m_prevPath;
 	std::vector<Point> m_currentPath;
+	std::vector<Point> m_connectedPath;
 	Check m_currentState;
 	double m_currentCost;
+};
+
+
+class Deserialize
+{
+public:
+	enum class Error : uint8_t
+	{
+		Ok = 0,
+		Eof,
+		InvalidCommand,
+		InvalidState,
+		InvalidPath,
+		InvalidStart,
+		InvalidTarget
+	};
+	struct CommandLine
+	{
+		Command cmd;
+		std::string line;
+
+		void eof();
+		void inv();
+		void update_cmd();
+	};
+	Deserialize();
+	/**
+	 * @param map Dynamic map state. Must be kept inscope and up to date outside of this class.
+	 * @param out Where to print output to.
+	 */
+	void Setup(Map map, std::istream& in);
+	
+	const CommandLine& GetNextCommand()
+	{
+		return NextCommand();
+	}
+	const CommandLine& GetCurrentCommand() noexcept
+	{
+		return m_cmd;
+	}
+
+	/// @brief Parse current command as a query.
+	/// @param errc Sets errc to non-zero on a parsing error.
+	/// @return The parsed query. This must ALWAYS match the scenario.
+	Query ParseCurrentQuery(Error& errc);
+	/// @brief Parse current command as a path (sub).
+	/// @param errc Sets errc to non-zero on a parsing error.
+	/// @return (Sub)Path state (complete/incomplete) and user provided path.
+	std::pair<Check, const std::vector<Point>*> ParseCurrentSubPath(Error& errc);
+	/// @brief Parse current command as eval. Expected after a (Sub)Path
+	/// @param errc Sets errc to non-zero on a parsing error.
+	/// @return (Sub)Path state (any state) and length of (Sub)Path.
+	std::pair<Check, double> ParseCurrentSubPathEval(Error& errc);
+	/// @brief Parse current command as final, end of Query block.
+	/// @param errc Sets errc to non-zero on a parsing error.
+	/// @return State and the full path.
+	std::pair<Check, double> ParseCurrentQueryFinal(Error& errc);
+
+	std::pair<Check, double> ValidatePath(const std::vector<Point>& path);
+
+	operator bool() const noexcept { return m_in != nullptr; }
+
+protected:
+	/**
+	 * Gets the next validation command.  Will skip empty lines and lines starting with #.
+	 * Command.cmd == Command::Eof is the end of file, thus no more validation.
+	 */
+	const CommandLine& NextCommand();
+
+private:
+	Map m_map = {};
+	std::istream* m_in = nullptr;
+	std::istringstream m_parser;
+	Command m_prevCmd = Command::Invalid;
+	CommandLine m_cmd = {Command::Final, {}};
+	std::vector<Point> m_subPath;
+	std::vector<Point> m_fullPath;
+	Query m_query = {};
+	Check m_currentState = {};
 };
 
 } // namespace GPPC::validate

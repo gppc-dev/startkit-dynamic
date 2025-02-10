@@ -162,6 +162,14 @@ void gppc_map_change(void *data, const struct gppc_patch* changes, uint32_t chan
  * except in the case where no path exists.
  * The validator will be invoked after each gppc_get_path call.
  * 
+ * Example for multi-called path:
+ * Full path from start to goal: (2,4), (2,5), (3,5), (4,6), (5,6), (6,6)
+ * First call: (2,4), (2,5)
+ * Second call: (3,5), (4,6), (5,6)
+ * Thrid call: (6,6)
+ * The system will account for the jump between call's
+ * E.g. second call will be treated as: (2,5), (3,5), (4,6), (5,6).
+ * 
  * @param[in] data User data from gppc_search_init.
  * @param[in] start Query start location.
  * @param[in] goal Query goal location.
