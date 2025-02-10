@@ -105,11 +105,12 @@ public:
 
 		std::string resultfile = "result.csv";
 		std::ofstream fout(resultfile);
-		const std::string header = "scen,experiment_id,path_size,path_length,ref_length,time_cost,20steps_cost,max_step_time";
+		const std::string header = "scen,experiment_id,snapshot_id,snapshot_time,path_size,path_length,ref_length,time_cost,20steps_cost,max_step_time";
 
 		fout << header << std::endl;
 		for (int query_id = 0; ; query_id++)
 		{
+			Timer::duration snapshot_time = {};
 			if (query_id != 0) {
 				int patch_changes = run.nextQuery();
 				if (patch_changes < 0)
@@ -117,7 +118,10 @@ public:
 				else if (patch_changes != 0) {
 					// map changed
 					auto& patches = run.getAppliedPatches();
+					t.StartTimer();
 					::gppc_map_change(data, patches.data(), patches.size());
+					t.EndTimer();
+					snapshot_time = t.GetElapsedTime();
 				}
 			}
 			auto scen = run.getCurrentQuery();
@@ -167,7 +171,9 @@ public:
 
 			fout << std::setprecision(9) << std::fixed;
 			fout << scenfile			 << ","
-					<< query_id				<< "," << thePath.size() << ","
+					<< query_id				<< "," << state_id << ","
+					<< snapshot_time.count() << ","
+					<< thePath.size() << ","
 					<< plen		 << "," << ref_len				<< ","
 					<< tcost.count() << "," << tcost_first.count() << ","
 					<< max_step.count() << std::endl;
