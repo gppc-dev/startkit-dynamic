@@ -94,12 +94,12 @@ void Serialize::AddSubPath(const std::vector<Point> &path, bool incomplete)
 	for (Point p : path) {
 		*m_out << ' ' << p.x << ' ' << p.y;
 	}
-	*m_out << "\neval " << m_currentState << ' ' << m_currentCost << std::endl;
+	*m_out << "\neval " << m_currentState << ' ' << std::setprecision(15) << m_currentCost << std::endl;
 }
 
 void Serialize::FinQuery()
 {
-	*m_out << "final " << m_currentState << ' ' << m_currentCost << std::endl;
+	*m_out << "final " << m_currentState << ' ' << std::setprecision(15) <<  m_currentCost << std::endl;
 	m_prevPath.clear();
 	m_currentPath.clear();
 }
