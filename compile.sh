@@ -4,6 +4,5 @@ build_dir="auto_build"
 
 mkdir -p ${idx_dir} ${build_dir}
 cmake "-B${build_dir}" -DCMAKE_BUILD_TYPE=Release
-cmake --build ${build_dir} --target GPPCentry
-# build exec
-cp "${build_dir}/libGPPCentry.so" lib
+cmake --build ${build_dir}
+cmake --install ${build_dir}
