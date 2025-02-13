@@ -218,17 +218,22 @@ public:
 
 		void *reference = ::gppc_search_init(scenRun.getActiveMap(), datafile.c_str());
 
-#ifdef GPPC_MEMORY_RECORD
 		bool memory_track = std::getenv("GPPC_MEMORY_TRACK") != nullptr;
-		char argument[256];
+#ifdef GPPC_MEMORY_RECORD
 		if (memory_track) {
+			char argument[256];
 			std::sprintf(argument, "pmap -x %d | tail -n 1 > run.info", getpid());
 			std::system(argument);
+		}
+#else
+		if (memory_track) {
+			std::cerr << "env GPPC_MEMORY_TRACK set but only available on linux.\n";
 		}
 #endif
 		RunExperiment(scenRun, reference);
 #ifdef GPPC_MEMORY_RECORD
 		if (memory_track) {
+			char argument[256];
 			std::sprintf(argument, "pmap -x %d | tail -n 1 >> run.info", getpid());
 			std::system(argument);
 		}
