@@ -127,10 +127,12 @@ public:
 	}
 
 	int RunExperiment(ScenarioRunner& scen_run, void* data) {
+		result_csv.assign(scen_run.getLoader()->getQueryCommands(), ResultRow{});
 		Timer t;
 		path_type thePath;
-		thePath.reserve(1024);
-		result_csv.assign(scen_run.getLoader()->getQueryCommands(), ResultRow{});
+		if (check) {
+			thePath.reserve(1024);
+		}
 
 		validate::Serialize validator;
 		if (check) {
