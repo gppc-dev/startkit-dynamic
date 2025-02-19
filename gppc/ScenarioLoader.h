@@ -145,6 +145,8 @@ public:
 	Map getActiveMapReal() const noexcept { return activeMap; }
 	const auto& getAppliedPatches() const noexcept { return appliedPatch; }
 
+	const ScenarioLoader* getLoader() const noexcept { return scenario; }
+
 private:
 	const ScenarioLoader* scenario;
 	std::unique_ptr<uint8_t[]> activeMapData;
