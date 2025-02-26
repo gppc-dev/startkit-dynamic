@@ -56,8 +56,8 @@ constexpr ::gppc_point point_invalid = ::gppc_point{
 };
 
 double EuclideanDist(::gppc_point a, ::gppc_point b) {
-	int64_t dx = std::abs((int64_t)b.x - (int64_t)a.x);
-	int64_t dy = std::abs((int64_t)b.y - (int64_t)a.y);
+	int64_t dx = (int64_t)b.x - (int64_t)a.x;
+	int64_t dy = (int64_t)b.y - (int64_t)a.y;
 	long double res = std::sqrt(static_cast<long double>(dx * dx) + static_cast<long double>(dy * dy));
 	return res;
 }
@@ -82,6 +82,7 @@ long double GetPathLength(const ::gppc_point* path, uint32_t count, ::gppc_point
 		::gppc_point current = *(path++);
 		--count;
 		len += EuclideanDist(prefix, current);
+		prefix = current;
 	}
 	return len;
 }
