@@ -287,13 +287,21 @@ public:
 		if (!run)
 			return 0;
 
-		void *reference = ::gppc_search_init(scenRun.getActiveMap(), datafile.c_str());
+		void *reference = nullptr;
+		{
+			Timer timer;
+			timer.StartTimer();
+			reference = ::gppc_search_init(scenRun.getActiveMap(), datafile.c_str());
+			timer.EndTimer();
+			std::ofstream fout("run.info");
+			fout << "search_init " << timer.GetElapsedTime().count() << std::endl;
+		}
 
 		bool memory_track = std::getenv("GPPC_MEMORY_TRACK") != nullptr;
 #ifdef GPPC_MEMORY_RECORD
 		if (memory_track) {
 			char argument[256];
-			std::sprintf(argument, "pmap -x %d | tail -n 1 > run.info", getpid());
+			std::sprintf(argument, "pmap -x %d | tail -n 1 >> run.info", getpid());
 			std::system(argument);
 		}
 #else
@@ -303,9 +311,9 @@ public:
 #endif
 		RunExperiment(scenRun, reference);
 		{
-		std::string resultfile = "result.csv";
-		std::ofstream fout(resultfile);
-		PrintResult(fout);
+			std::string resultfile = "result.csv";
+			std::ofstream fout(resultfile);
+			PrintResult(fout);
 		}
 #ifdef GPPC_MEMORY_RECORD
 		if (memory_track) {
