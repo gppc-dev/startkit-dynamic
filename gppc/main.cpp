@@ -198,7 +198,7 @@ public:
 						thePath.assign(result_path.path, result_path.path + result_path.length);
 				}
 				if (run) {
-					if (result_path.path != nullptr) {
+					if (result_path.length != 0) {
 						run_len += result_path.length;
 						run_cost += GetPathLength(result_path.path, result_path.length, run_cost_prefix);
 						run_cost_prefix = result_path.path[result_path.length-1];
@@ -227,15 +227,9 @@ public:
 			if (!done) {
 				plen = 0;
 				plen_size = 0;
-			} else if (check) {
-				plen = GetPathLength(thePath);
-				plen_size = thePath.size();
-			} else if (run) {
-				plen = static_cast<double>(run_cost);
-				plen_size = run_len;
 			} else {
-				plen = 0;
-				plen_size = 0;
+				plen = run_len != 0 ? static_cast<double>(run_cost) : -1.0;
+				plen_size = run_len;
 			}
 
 			ResultRow row;
