@@ -97,7 +97,7 @@ public:
 		uint64_t snapshot_time;
 		uint32_t path_size;
 		double path_length;
-		uint32_t ref_length;
+		double ref_length;
 		uint64_t time_cost;
 		uint64_t _20steps_cost;
 		uint64_t max_step_time;
@@ -187,7 +187,7 @@ public:
 					return 2;
 				}
 				if (check) {
-					if (result_path.path == nullptr)
+					if (result_path.length == 0)
 						thePath.clear();
 					else
 						thePath.assign(result_path.path, result_path.path + result_path.length);
@@ -315,7 +315,7 @@ public:
 	{
 		out << "scen,experiment_id,snapshot_id,snapshot_time,path_size,path_length,ref_length,time_cost,20steps_cost,max_step_time\n";
 		for (const ResultRow& row : result_csv) {
-			out << std::setprecision(9) << std::fixed;
+			out << std::setprecision(14) << std::fixed;
 			out << scenfile.string() << ','
 				<< row.experiment_id << ',' << row.snapshot_id << ','
 				<< row.snapshot_time << ','
