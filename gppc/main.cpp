@@ -142,7 +142,8 @@ public:
 
 		for (int query_id = 0; ; query_id++)
 		{
-			Timer::duration snapshot_time = {};
+			typedef Timer::duration dur;
+			dur snapshot_time = dur::zero();
 			if (query_id != 0) {
 				int patch_changes = scen_run.nextQuery();
 				if (patch_changes < 0)
@@ -166,8 +167,11 @@ public:
 			}
 
 			thePath.clear();
-			typedef Timer::duration dur;
-			dur max_step = dur::zero(), tcost = dur::zero(), tcost_first = dur::zero();
+			dur tcost_curr = snapshot_time, tcost = dur::zero(), tcost_first = dur::zero(), max_step = dur::zero();
+			// tcost_curr is the virtual timer of gppc_get_path, where the first call includes snapshot_time but following do not
+			// tcost appends all tcost_curr
+			// tcost_first appends tcost_curr until at least path length PATH_FIRST_STEP_LENGTH (20)
+			// max_step is the maximum tcost_curr
 			bool done = false, done_first = false;
 			::gppc_path result_path;
 			uint32_t run_len = 0;
@@ -177,6 +181,7 @@ public:
 				t.StartTimer();
 				result_path = ::gppc_get_path(data, scen.start, scen.goal);
 				t.EndTimer();
+				tcost_curr += t.GetElapsedTime();
 				// move result_path into thePath
 				done = !result_path.incomplete;
 				if (result_path.length < 0) {
@@ -199,12 +204,16 @@ public:
 						run_cost_prefix = result_path.path[result_path.length-1];
 					}
 				}
-				max_step = std::max(max_step, t.GetElapsedTime());
-				tcost += t.GetElapsedTime();
+
+				// handle time
+				max_step = std::max(max_step, tcost_curr);
+				tcost += tcost_curr;
 				if (!done_first) {
-					tcost_first += t.GetElapsedTime();
+					tcost_first += tcost_curr;
 					done_first = GetPathLength(thePath) >= PATH_FIRST_STEP_LENGTH - 1e-6;
 				}
+				tcost_curr = dur::zero(); // zero for next iteration
+
 				if (check) {
 					validator.AddSubPath(thePath, !done);
 				}
