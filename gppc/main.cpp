@@ -30,6 +30,7 @@ SOFTWARE.
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <filesystem>
 #include "GPPC.h"
 #include "ScenarioLoader.h"
@@ -49,6 +50,10 @@ SOFTWARE.
 namespace GPPC {
 
 using path_type = std::vector<::gppc_point>;
+constexpr ::gppc_point point_invalid = ::gppc_point{
+	std::numeric_limits<decltype(::gppc_point::x)>::max(),
+	std::numeric_limits<decltype(::gppc_point::y)>::max()
+};
 
 double EuclideanDist(::gppc_point a, ::gppc_point b) {
 	int64_t dx = std::abs((int64_t)b.x - (int64_t)a.x);
@@ -64,10 +69,39 @@ long double GetPathLength(const path_type& path)
 		len += EuclideanDist(path[x], path[x+1]);
 	return len;
 }
+long double GetPathLength(const ::gppc_point* path, uint32_t count, ::gppc_point prefix = point_invalid)
+{
+	if (count == 0)
+		return 0;
+	if (prefix.x == point_invalid.x && prefix.y == point_invalid.y) {
+		prefix = *(path++);
+		--count;
+	}
+	long double len = 0;
+	while (count != 0) {
+		::gppc_point current = *(path++);
+		--count;
+		len += EuclideanDist(prefix, current);
+	}
+	return len;
+}
 
 class App
 {
 public:
+	struct ResultRow
+	{
+		// std::string scen; // implicit
+		uint32_t experiment_id;
+		uint32_t snapshot_id;
+		uint64_t snapshot_time;
+		uint32_t path_size;
+		double path_length;
+		uint32_t ref_length;
+		uint64_t time_cost;
+		uint64_t _20steps_cost;
+		uint64_t max_step_time;
+	};
 
 	bool ParseArgs(int argc, char **argv) {
 		if (argc < 2) return false;
@@ -92,51 +126,53 @@ public:
 		std::printf("\t-check: Run for validation\n");
 	}
 
-	int RunExperiment(ScenarioRunner& run, void* data) {
+	int RunExperiment(ScenarioRunner& scen_run, void* data) {
+		result_csv.assign(scen_run.getLoader()->getQueryCommands(), ResultRow{});
 		Timer t;
 		path_type thePath;
-		thePath.reserve(1024);
+		if (check) {
+			thePath.reserve(1024);
+		}
 
 		validate::Serialize validator;
 		if (check) {
-			validator.Setup(run.getActiveMapReal(), std::cout);
+			validator.Setup(scen_run.getActiveMapReal(), std::cout);
 			validator.PrintHeader();
 		}
 
-		std::string resultfile = "result.csv";
-		std::ofstream fout(resultfile);
-		const std::string header = "scen,experiment_id,snapshot_id,snapshot_time,path_size,path_length,ref_length,time_cost,20steps_cost,max_step_time";
-
-		fout << header << std::endl;
 		for (int query_id = 0; ; query_id++)
 		{
 			Timer::duration snapshot_time = {};
 			if (query_id != 0) {
-				int patch_changes = run.nextQuery();
+				int patch_changes = scen_run.nextQuery();
 				if (patch_changes < 0)
 					break; // no more queries
 				else if (patch_changes != 0) {
 					// map changed
-					auto& patches = run.getAppliedPatches();
+					auto& patches = scen_run.getAppliedPatches();
 					t.StartTimer();
 					::gppc_map_change(data, patches.data(), patches.size());
 					t.EndTimer();
 					snapshot_time = t.GetElapsedTime();
 				}
 			}
-			auto scen = run.getCurrentQuery();
+			auto scen = scen_run.getCurrentQuery();
 			int state_id = scen.bucket;
-			if (check)
+			if (check) {
 				validator.AddQuery({query_id, state_id,
 					{scen.start.x, scen.start.y},
 					{scen.goal.x, scen.goal.y},
 					scen.cost});
+			}
 
 			thePath.clear();
 			typedef Timer::duration dur;
 			dur max_step = dur::zero(), tcost = dur::zero(), tcost_first = dur::zero();
 			bool done = false, done_first = false;
 			::gppc_path result_path;
+			uint32_t run_len = 0;
+			long double run_cost = 0;
+			::gppc_point run_cost_prefix = point_invalid;
 			do {
 				t.StartTimer();
 				result_path = ::gppc_get_path(data, scen.start, scen.goal);
@@ -150,34 +186,60 @@ public:
 					std::cerr << "Null path has length > 0 (" << result_path.length << ")\n";
 					return 2;
 				}
-				if (result_path.path == nullptr)
-					thePath.clear();
-				else
-					thePath.assign(result_path.path, result_path.path + result_path.length);
+				if (check) {
+					if (result_path.path == nullptr)
+						thePath.clear();
+					else
+						thePath.assign(result_path.path, result_path.path + result_path.length);
+				}
+				if (run) {
+					if (result_path.path != nullptr) {
+						run_len += result_path.length;
+						run_cost += GetPathLength(result_path.path, result_path.length, run_cost_prefix);
+						run_cost_prefix = result_path.path[result_path.length-1];
+					}
+				}
 				max_step = std::max(max_step, t.GetElapsedTime());
 				tcost += t.GetElapsedTime();
 				if (!done_first) {
 					tcost_first += t.GetElapsedTime();
 					done_first = GetPathLength(thePath) >= PATH_FIRST_STEP_LENGTH - 1e-6;
 				}
-				if (check)
+				if (check) {
 					validator.AddSubPath(thePath, !done);
+				}
 			} while (!done);
-			if (check)
+			if (check) {
 				validator.FinQuery();
-			double plen = done?GetPathLength(thePath): 0;
+			}
 			double ref_len = scen.cost;
+			double plen;
+			uint64_t plen_size;
+			if (!done) {
+				plen = 0;
+				plen_size = 0;
+			} else if (check) {
+				plen = GetPathLength(thePath);
+				plen_size = thePath.size();
+			} else if (run) {
+				plen = static_cast<double>(run_cost);
+				plen_size = run_len;
+			} else {
+				plen = 0;
+				plen_size = 0;
+			}
 
-
-			fout << std::setprecision(9) << std::fixed;
-			fout << scenfile			 << ","
-					<< query_id				<< "," << state_id << ","
-					<< snapshot_time.count() << ","
-					<< thePath.size() << ","
-					<< plen		 << "," << ref_len				<< ","
-					<< tcost.count() << "," << tcost_first.count() << ","
-					<< max_step.count() << std::endl;
-
+			ResultRow row;
+			row.experiment_id = query_id;
+			row.snapshot_id = state_id;
+			row.snapshot_time = snapshot_time.count();
+			row.path_size = plen_size;
+			row.path_length = plen;
+			row.ref_length = ref_len;
+			row.time_cost = tcost.count();
+			row._20steps_cost = tcost_first.count();
+			row.max_step_time = max_step.count();
+			result_csv[query_id] = row;
 		}
 		return 0;
 	}
@@ -231,6 +293,11 @@ public:
 		}
 #endif
 		RunExperiment(scenRun, reference);
+		{
+		std::string resultfile = "result.csv";
+		std::ofstream fout(resultfile);
+		PrintResult(fout);
+		}
 #ifdef GPPC_MEMORY_RECORD
 		if (memory_track) {
 			char argument[256];
@@ -244,12 +311,28 @@ public:
 		return 0;
 	}
 
+	void PrintResult(std::ostream& out)
+	{
+		out << "scen,experiment_id,snapshot_id,snapshot_time,path_size,path_length,ref_length,time_cost,20steps_cost,max_step_time\n";
+		for (const ResultRow& row : result_csv) {
+			out << std::setprecision(9) << std::fixed;
+			out << scenfile.string() << ','
+				<< row.experiment_id << ',' << row.snapshot_id << ','
+				<< row.snapshot_time << ','
+				<< row.path_size << ','
+				<< row.path_length << ',' << row.ref_length << ','
+				<< row.time_cost << ',' << row._20steps_cost << ','
+				<< row.max_step_time << '\n';
+		}
+	}
+
 public:
 	std::filesystem::path datafile, scenfile, flag;
 	const std::filesystem::path index_dir = "index_data";
 	bool pre	 = false;
 	bool run	 = false;
 	bool check = false;
+	std::vector<ResultRow> result_csv;
 };
 
 };
