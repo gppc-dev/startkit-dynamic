@@ -67,8 +67,8 @@ void Serialize::AddSubPath(const std::vector<Point> &path, bool incomplete)
 			if (m_prevPath.back() != path.front()) {
 				m_connectedPath.push_back(m_prevPath.back());
 			}
-			m_connectedPath.insert(m_connectedPath.end(), path.begin(), path.end());
 		}
+		m_connectedPath.insert(m_connectedPath.end(), path.begin(), path.end());
 	}
 	[&] () {
 		if (!m_connectedPath.empty()) {
