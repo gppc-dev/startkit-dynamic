@@ -267,7 +267,7 @@ auto Deserialize::ParseCurrentQueryFinal(Error& errc) -> std::pair<Check, double
 
 auto Deserialize::ValidatePath(const std::vector<Point>& path) -> std::pair<Check, double>
 {
-	std::pair<Check, double> res{};
+	std::pair<Check, double> res{Check{}, -1.0};
 	if (path.empty()) {
 		res.first = Check{State::EmptyPath, 0};
 		return res;
