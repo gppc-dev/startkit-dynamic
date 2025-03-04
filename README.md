@@ -62,7 +62,7 @@ follows `Entry.h` specifications, see header for details on function call usage 
 ## Your Implementation
 * Implement `gppc_preprocess_init_map`, `gppc_search_init`, `gppc_map_change`, `gppc_get_path`, `gppc_free_data` and `gppc_get_name` for shared library.  Modify `Entry.cpp` for C++ and `Entry.c` for C.
 * Specify your dependency packages in `apt.txt`. The packages must be available for installation through `apt-get` on Ubuntu 22.
-* Modify `compile.sh` and make sure your code can be compiled by executing this script.  It must work under Linux Ubutnu 22 with the packages in `apt.txt` to produce a working shared library `lib/libGPPCentry.so`.
+* Modify `compile.sh` and make sure your code can be compiled by executing this script.  It must work under Linux Ubuntu 22 with the packages in `apt.txt` to produce a working shared library `lib/libGPPCentry.so`.
 
 Default compiling is handled by CMake, using the C++ version.  If using C binding implementation `Entry.c`,
 switch the included source code in `./CMakeLists.txt` for these files with the command `add_library(GPPCentry`

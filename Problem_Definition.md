@@ -22,4 +22,16 @@ For a query `<s, t>`, a valid path is a sequence of nodes `p=<s,v1,...vn,t>`, an
 * From `a` to `c` needs 1 ordinal move (`North-East`) and 2 cardinal moves (`East`), so `<a, c>` is not a valid segment;
 * From `c` to `d`, the first diagonal move from `c` is forbidden due to the **no corner-cutting** rule, so `<c, d>` is not a valid segment;
 
-**When start and target are same node, the path must be empty, the length must be `0`.**
+A query may not have a valid solution path.  **In this case, you must return an empty path.**
+
+# Dynamic Environment
+
+<img src="./figs/dynamic.png" width="856">
+
+The input graph can change between queries.
+An initial grid is provided in function `gppc_preprocess_init_map`.
+
+Between queries, a set of small input grid's called patches may be provided in function `gppc_map_change`.
+Each patch has a `(x,y)` location, and will replace part of the input graph at `(x,y)` with the patch's
+grid at the top left.
+
