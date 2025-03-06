@@ -91,7 +91,7 @@ void Serialize::AddSubPath(const std::vector<Point> &path, bool incomplete)
 		}
 	}();
 	if (m_currentState.code == State::EmptyPath) {
-		*m_out << "path complete -1\n"
+		*m_out << "path complete 0\n"
 			"eval " << m_currentState << " -1" << std::endl;
 	} else {
 		m_currentCost = GetPathLength(path);
