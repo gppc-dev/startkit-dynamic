@@ -81,20 +81,28 @@ void Serialize::AddSubPath(const std::vector<Point> &path, bool incomplete)
 				m_currentState = Check{State::InvalidEdge, path_res};
 				return;
 			}
-			if (!incomplete && (path.size() < 2 || path.back() != m_current.goal)) {
+			if (!incomplete && (m_connectedPath.size() < 2 || m_connectedPath.back() != m_current.goal)) {
 				m_currentState = Check{State::GoalMismatch, 0};
 				return;
 			}
+			m_currentState = incomplete ? Check{State::Incomplete, 0} : Check{State::Complete, 0};
+		} else {
+			m_currentState = Check{State::EmptyPath, 0};
 		}
-		m_currentState = incomplete ? Check{State::Incomplete, 0} : Check{State::Complete, 0};
 	}();
-	m_currentCost = GetPathLength(path);
-	// print results
-	*m_out << "path " << (incomplete ? "incomplete" : "complete") << ' ' << path.size();
-	for (Point p : path) {
-		*m_out << ' ' << p.x << ' ' << p.y;
+	if (m_currentState.code == State::EmptyPath) {
+		*m_out << "path complete -1\n"
+			"eval " << m_currentState << " -1" << std::endl;
+	} else {
+		m_currentCost = GetPathLength(path);
+		// print results
+		*m_out << "path " << (incomplete ? "incomplete" : "complete") << ' ' << path.size();
+		for (Point p : path) {
+			*m_out << ' ' << p.x << ' ' << p.y;
+		}
+		*m_out << "\neval " << m_currentState << ' ' << std::setprecision(15) << m_currentCost << std::endl;
 	}
-	*m_out << "\neval " << m_currentState << ' ' << std::setprecision(15) << m_currentCost << std::endl;
+	m_prevPath = m_currentPath;
 }
 
 void Serialize::FinQuery()
@@ -356,6 +364,9 @@ std::ostream &operator<<(std::ostream &out, GPPC::validate::Check check)
 		break;
 	case State::Complete:
 		out << "complete";
+		break;
+	case State::EmptyPath:
+		out << "empty-path";
 		break;
 	default:
 		out.setstate(std::ios::failbit);
