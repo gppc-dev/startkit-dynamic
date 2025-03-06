@@ -389,6 +389,8 @@ std::istream &operator>>(std::istream &out, GPPC::validate::Check &check)
 		check = {State::GoalMismatch, 0};
 	} else if (token == "complete"sv) {
 		check = {State::Complete, 0};
+	} else if (token == "empty-path"sv) {
+		check = {State::EmptyPath, 0};
 	} else if (token.substr(0, "invalid-"sv.length()) == "invalid-"sv) {
 		// check for prefix
 		token = token.substr("invalid-"sv.length());
