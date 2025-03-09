@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(GPPC_Entry CXX C)
+project(GPPC_Entry LANGUAGES CXX C VERSION 2.0.0)
 
 set(CMAKE_CXX_STANDARD 11) # can change
 set(CMAKE_C_STANDARD 11) # can change
