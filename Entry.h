@@ -38,9 +38,9 @@ struct gppc_point
 
 struct gppc_path
 {
-  const struct gppc_point *path; /// store array of size length. Allows NULL only if length=0.
-  uint32_t length; /// length of the (x,y) pairs path.
-  uint8_t incomplete; /// boolean for incomplete path, if 1 then contest will call gppc_get_path again.
+	const struct gppc_point *path; /// store array of size length. Allows NULL only if length=0.
+	uint32_t length; /// length of the (x,y) pairs path.
+	uint8_t incomplete; /// boolean for incomplete path, if 1 then contest will call gppc_get_path again.
 };
 
 /**
@@ -154,13 +154,20 @@ void gppc_map_change(void *data, const struct gppc_patch* changes, uint32_t chan
  * The User should free this allocation on call to gppc_free_search_data.
  * 
  * This function can be called multiple times for a query, based on user return values.
- * The gppc_path.incomplete = 0 marks the final call for the query.
+ * The gppc_path.incomplete=0 marks the final call for the query.
  * Every call to gppc_get_path will concatenate the path for a query, so the user
  * should only return additional path segments, not a prefix path to each call.
  * Users who return the whole path only just need to return the whole path.
  * The path must start with start on the first call and end with goal on the final call,
  * except in the case where no path exists.
  * The validator will be invoked after each gppc_get_path call.
+ * 
+ * When no path exists, you must return gppc_path with length=0 and incomplete=0.
+ * Return any path where length=0 will be considered as a no path result, an incomplete=1
+ * is invalid in this case and your program will error.
+ * If previous parts of the path have already been returned before your algorithm
+ * determined that no path is possible, those parts will be discarded and you will have
+ * a correct no answer response.
  * 
  * Example for multi-called path:
  * Full path from start to goal: (2,4), (2,5), (3,5), (4,6), (5,6), (6,6)
