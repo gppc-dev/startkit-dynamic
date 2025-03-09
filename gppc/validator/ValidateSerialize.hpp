@@ -98,7 +98,7 @@ private:
 	std::vector<Point> m_currentPath;
 	std::vector<Point> m_connectedPath;
 	Check m_currentState;
-	double m_currentCost;
+	long double m_currentCost;
 };
 
 

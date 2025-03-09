@@ -55,6 +55,7 @@ void Serialize::AddQuery(Query Q)
 	       << Q.start.x << ' ' << Q.start.y << ' '
 		   << Q.goal.x << ' ' << Q.goal.y << std::endl;
 	m_prevPath.clear();
+	m_currentCost = 0;
 	ClearState();
 }
 
@@ -93,21 +94,23 @@ void Serialize::AddSubPath(const std::vector<Point> &path, bool incomplete)
 	if (m_currentState.code == State::EmptyPath) {
 		*m_out << "path complete 0\n"
 			"eval " << m_currentState << " -1" << std::endl;
+		m_currentCost = -1;
 	} else {
-		m_currentCost = GetPathLength(path);
+		long double cost = GetPathLength(m_connectedPath);
 		// print results
 		*m_out << "path " << (incomplete ? "incomplete" : "complete") << ' ' << path.size();
 		for (Point p : path) {
 			*m_out << ' ' << p.x << ' ' << p.y;
 		}
-		*m_out << "\neval " << m_currentState << ' ' << std::setprecision(15) << m_currentCost << std::endl;
+		*m_out << "\neval " << m_currentState << ' ' << std::setprecision(15) << static_cast<double>(cost) << std::endl;
+		m_currentCost += cost;
 	}
 	m_prevPath = m_currentPath;
 }
 
 void Serialize::FinQuery()
 {
-	*m_out << "final " << m_currentState << ' ' << std::setprecision(15) <<  m_currentCost << std::endl;
+	*m_out << "final " << m_currentState << ' ' << std::setprecision(15) << static_cast<double>(m_currentCost) << std::endl;
 	m_prevPath.clear();
 	m_currentPath.clear();
 }
@@ -115,7 +118,6 @@ void Serialize::FinQuery()
 void Serialize::ClearState()
 {
 	m_currentState = {};
-	m_currentCost = {};
 }
 
 
