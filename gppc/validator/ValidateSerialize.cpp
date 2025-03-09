@@ -190,7 +190,9 @@ auto Deserialize::ParseCurrentSubPath(Error& errc) -> std::pair<Check, const std
 		return {};
 	}
 	if (count == 0) {
+		// EmptyPath
 		m_subPath.clear();
+		m_fullPath.clear();
 		return {S, &m_subPath};
 	}
 	m_subPath.resize(count + 1);
@@ -264,11 +266,11 @@ auto Deserialize::ParseCurrentQueryFinal(Error& errc) -> std::pair<Check, double
 		errc = Error::InvalidCommand;
 		return {};
 	}
-	auto res = ValidatePath(m_subPath);
-	if (!m_subPath.empty()) {
-		if (m_subPath.front() != m_query.start) {
+	auto res = ValidatePath(m_fullPath);
+	if (!m_fullPath.empty()) {
+		if (m_fullPath.front() != m_query.start) {
 			res.first = Check{State::StartMismatch, 0};
-		} else if (m_subPath.back() != m_query.goal) {
+		} else if (m_fullPath.back() != m_query.goal) {
 			res.first = Check{State::GoalMismatch, 0};
 		}
 	}
