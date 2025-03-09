@@ -27,29 +27,49 @@ SOFTWARE.
 #include <cstddef>
 #include <cassert>
 #include <cstdlib>
+#include <MapLoader.h>
+#include <cmath>
 
-namespace inx {
+namespace GPPC::validate {
 
 using std::size_t;
 
 struct alignas(size_t)
 Point
 {
-	int x;
-	int y;
+	int32_t x;
+	int32_t y;
 };
 
-Point operator+(Point lhs, Point rhs) noexcept { return Point{lhs.x + rhs.x, lhs.y + rhs.y}; }
-Point operator-(Point lhs, Point rhs) noexcept { return Point{lhs.x - rhs.x, lhs.y - rhs.y}; }
+inline Point operator+(Point lhs, Point rhs) noexcept { return Point{lhs.x + rhs.x, lhs.y + rhs.y}; }
+inline Point operator-(Point lhs, Point rhs) noexcept { return Point{lhs.x - rhs.x, lhs.y - rhs.y}; }
 
-bool operator==(Point lhs, Point rhs) noexcept { return lhs.x == rhs.x && lhs.y == rhs.y; }
-bool operator!=(Point lhs, Point rhs) noexcept { return lhs.x != rhs.x || lhs.y != rhs.y; }
+inline bool operator==(Point lhs, Point rhs) noexcept { return lhs.x == rhs.x && lhs.y == rhs.y; }
+inline bool operator!=(Point lhs, Point rhs) noexcept { return lhs.x != rhs.x || lhs.y != rhs.y; }
+
+
+inline long double EuclideanDist(Point a, Point b) {
+	int64_t dx = std::abs(static_cast<int64_t>(b.x) - a.x);
+	int64_t dy = std::abs(static_cast<int64_t>(b.y) - a.y);
+	long double res = std::sqrt(static_cast<long double>(dx * dx) + static_cast<long double>(dy * dy));
+	return res;
+}
+
+inline long double GetPathLength(const std::vector<Point>& path)
+{
+	if (path.empty())
+		return -1;
+	long double len = 0;
+	for (int x = 0, xe = (int)path.size()-1; x < xe; x++)
+		len += EuclideanDist(path[x], path[x+1]);
+	return len;
+}
 
 class PathValidator
 {
 public:
-	PathValidator(const std::vector<bool>& map, int width, int height)
-		: m_map(&map), m_width(static_cast<size_t>(width)), m_height(static_cast<size_t>(height))
+	PathValidator(Map map)
+		: m_map(map)
 	{ }
 
 	bool get(Point u) const noexcept
@@ -58,13 +78,14 @@ public:
 	}
 	bool get(int x, int y) const noexcept
 	{
-		assert(static_cast<size_t>(x) < m_width && static_cast<size_t>(y) < m_height);
-		return (*m_map)[y * m_width + x];
+		return map_get(m_map, y * m_map.width + x);
 	}
 
 	bool validPoint(Point u) const noexcept
 	{
-		return static_cast<size_t>(u.x) < m_width && static_cast<size_t>(u.y) < m_height && get(u);
+		return static_cast<size_t>(u.x) < static_cast<size_t>(m_map.width) &&
+			static_cast<size_t>(u.y) < static_cast<size_t>(m_map.height) &&
+			get(u);
 	}
 
 	bool validEdge(Point u, Point v) const noexcept
@@ -118,20 +139,18 @@ private:
 	}
 
 private:
-	const std::vector<bool>* m_map;
-	size_t m_width;
-	size_t m_height;
+	Map m_map;
 };
 
 template <typename PathContainer>
-int ValidatePath(const std::vector<bool>& map, int width, int height, const PathContainer& thePath)
+inline int ValidatePath(const Map& map, const PathContainer& thePath)
 {
 	size_t S = static_cast<size_t>(thePath.size());
 	if (S == 0)
 		return -1;
 	if (S == 1)
 		return 0;
-	PathValidator validator(map, width, height);
+	PathValidator validator(map);
 	// check each point in path
 	for (size_t i = 0; i < S; ++i) {
 		Point u{static_cast<int>(thePath[i].x), static_cast<int>(thePath[i].y)};
@@ -148,6 +167,6 @@ int ValidatePath(const std::vector<bool>& map, int width, int height, const Path
 	return -1;
 }
 
-} // namespace inx
+} // namespace GPPC::validate
 
 #endif // GPPC_VALIDATEPATH_HPP

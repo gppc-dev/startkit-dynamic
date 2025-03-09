@@ -40,4 +40,6 @@
 **/run.info
 **/run.stderr
 **/run.stdout
-index_data/**
+/index_data/
+/lib/
+/auto_build/
