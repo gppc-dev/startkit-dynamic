@@ -78,6 +78,9 @@ If using a different shared library compiling system (no CMake),
 or want to link your library against another library then check out the Advanced Compiling subsection
 for advice.
 
+**Note:** During evaluation, a scenario will be run twice (with `-run` and `-check`).  You must produce a consistent result between runs,
+e.g. set random seeds if using a randomised algorithm.
+
 ## Run the Program
 * `./run -pre <map> none` Run in preprocessing mode. The program should preprocess the given map and store the preprocessing data under `index_data/`.
 * `./run -check <map> <scen>` Run in validation mode. The output will be validated. Each entry of the `run.stdout` will be marked as `valid` or `invalid-i`, where `i` indicate which segment of the path is invalid.

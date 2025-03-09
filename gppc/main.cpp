@@ -174,6 +174,7 @@ public:
 			// tcost_first appends tcost_curr until at least path length PATH_FIRST_STEP_LENGTH (20)
 			// max_step is the maximum tcost_curr
 			bool done = false, done_first = false;
+			bool no_path = scen.cost == -1;
 			::gppc_path result_path;
 			uint32_t run_len = 0;
 			long double run_cost = 0;
@@ -214,7 +215,7 @@ public:
 				tcost += tcost_curr;
 				if (!done_first) {
 					tcost_first += tcost_curr;
-					done_first = GetPathLength(thePath) >= PATH_FIRST_STEP_LENGTH - 1e-6;
+					done_first = !no_path && GetPathLength(thePath) >= PATH_FIRST_STEP_LENGTH - 1e-6;
 				}
 				tcost_curr = dur::zero(); // zero for next iteration
 
