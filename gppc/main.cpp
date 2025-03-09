@@ -191,6 +191,9 @@ public:
 				} else if (result_path.path == nullptr && result_path.length > 0) {
 					std::cerr << "Null path has length > 0 (" << result_path.length << ")\n";
 					return 2;
+				} else if (result_path.length == 0 && result_path.incomplete != 0) {
+					std::cerr << "Empty path is not marked as incomplete\n";
+					return 2;
 				}
 				if (check) {
 					if (result_path.length == 0)

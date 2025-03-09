@@ -55,6 +55,7 @@ void Serialize::AddQuery(Query Q)
 	       << Q.start.x << ' ' << Q.start.y << ' '
 		   << Q.goal.x << ' ' << Q.goal.y << std::endl;
 	m_prevPath.clear();
+	m_currentCost = 0;
 	ClearState();
 }
 
@@ -81,25 +82,35 @@ void Serialize::AddSubPath(const std::vector<Point> &path, bool incomplete)
 				m_currentState = Check{State::InvalidEdge, path_res};
 				return;
 			}
-			if (!incomplete && (path.size() < 2 || path.back() != m_current.goal)) {
+			if (!incomplete && (m_connectedPath.size() < 2 || m_connectedPath.back() != m_current.goal)) {
 				m_currentState = Check{State::GoalMismatch, 0};
 				return;
 			}
+			m_currentState = incomplete ? Check{State::Incomplete, 0} : Check{State::Complete, 0};
+		} else {
+			m_currentState = Check{State::EmptyPath, 0};
 		}
-		m_currentState = incomplete ? Check{State::Incomplete, 0} : Check{State::Complete, 0};
 	}();
-	m_currentCost = GetPathLength(path);
-	// print results
-	*m_out << "path " << (incomplete ? "incomplete" : "complete") << ' ' << path.size();
-	for (Point p : path) {
-		*m_out << ' ' << p.x << ' ' << p.y;
+	if (m_currentState.code == State::EmptyPath) {
+		*m_out << "path complete 0\n"
+			"eval " << m_currentState << " -1" << std::endl;
+		m_currentCost = -1;
+	} else {
+		long double cost = GetPathLength(m_connectedPath);
+		// print results
+		*m_out << "path " << (incomplete ? "incomplete" : "complete") << ' ' << path.size();
+		for (Point p : path) {
+			*m_out << ' ' << p.x << ' ' << p.y;
+		}
+		*m_out << "\neval " << m_currentState << ' ' << std::setprecision(15) << static_cast<double>(cost) << std::endl;
+		m_currentCost += cost;
 	}
-	*m_out << "\neval " << m_currentState << ' ' << std::setprecision(15) << m_currentCost << std::endl;
+	m_prevPath = m_currentPath;
 }
 
 void Serialize::FinQuery()
 {
-	*m_out << "final " << m_currentState << ' ' << std::setprecision(15) <<  m_currentCost << std::endl;
+	*m_out << "final " << m_currentState << ' ' << std::setprecision(15) << static_cast<double>(m_currentCost) << std::endl;
 	m_prevPath.clear();
 	m_currentPath.clear();
 }
@@ -107,7 +118,6 @@ void Serialize::FinQuery()
 void Serialize::ClearState()
 {
 	m_currentState = {};
-	m_currentCost = {};
 }
 
 
@@ -180,7 +190,9 @@ auto Deserialize::ParseCurrentSubPath(Error& errc) -> std::pair<Check, const std
 		return {};
 	}
 	if (count == 0) {
+		// EmptyPath
 		m_subPath.clear();
+		m_fullPath.clear();
 		return {S, &m_subPath};
 	}
 	m_subPath.resize(count + 1);
@@ -254,11 +266,11 @@ auto Deserialize::ParseCurrentQueryFinal(Error& errc) -> std::pair<Check, double
 		errc = Error::InvalidCommand;
 		return {};
 	}
-	auto res = ValidatePath(m_subPath);
-	if (!m_subPath.empty()) {
-		if (m_subPath.front() != m_query.start) {
+	auto res = ValidatePath(m_fullPath);
+	if (!m_fullPath.empty()) {
+		if (m_fullPath.front() != m_query.start) {
 			res.first = Check{State::StartMismatch, 0};
-		} else if (m_subPath.back() != m_query.goal) {
+		} else if (m_fullPath.back() != m_query.goal) {
 			res.first = Check{State::GoalMismatch, 0};
 		}
 	}
@@ -357,6 +369,9 @@ std::ostream &operator<<(std::ostream &out, GPPC::validate::Check check)
 	case State::Complete:
 		out << "complete";
 		break;
+	case State::EmptyPath:
+		out << "empty-path";
+		break;
 	default:
 		out.setstate(std::ios::failbit);
 	}
@@ -378,6 +393,8 @@ std::istream &operator>>(std::istream &out, GPPC::validate::Check &check)
 		check = {State::GoalMismatch, 0};
 	} else if (token == "complete"sv) {
 		check = {State::Complete, 0};
+	} else if (token == "empty-path"sv) {
+		check = {State::EmptyPath, 0};
 	} else if (token.substr(0, "invalid-"sv.length()) == "invalid-"sv) {
 		// check for prefix
 		token = token.substr("invalid-"sv.length());
