@@ -215,7 +215,7 @@ public:
 				tcost += tcost_curr;
 				if (!done_first) {
 					tcost_first += tcost_curr;
-					done_first = !no_path && GetPathLength(thePath) >= PATH_FIRST_STEP_LENGTH - 1e-6;
+					done_first = !no_path && run_cost >= PATH_FIRST_STEP_LENGTH - 1e-6;
 				}
 				tcost_curr = dur::zero(); // zero for next iteration
 
