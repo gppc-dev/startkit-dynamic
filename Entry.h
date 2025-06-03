@@ -67,7 +67,7 @@ struct gppc_patch
 };
 
 /**
- * @param map The patch to get data from
+ * @param patch The patch to get data from
  * @param i The index where data resides
  * @return 0/1 -> 1=traversable, 0=blocker
  */
