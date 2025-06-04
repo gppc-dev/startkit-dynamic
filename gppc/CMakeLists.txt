@@ -5,12 +5,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 
 add_library(GPPCutility
+	Entry.h
 	validator/ValidateSerialize.cpp
 	validator/ValidateSerialize.hpp
 	validator/ValidatePath.hpp
 	MapLoader.h
-	ScenarioLoader.h
 	MapLoader.cpp
+	ScenarioLoader.h
 	ScenarioLoader.cpp
 	Timer.h
 	Timer.cpp

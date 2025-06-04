@@ -40,6 +40,8 @@ bool load_map_data(std::istream &in, Map &map, std::pmr::memory_resource *res)
 		return false;
 	map.width = width;
 	// no need to call res->deallocate
+	if (res == nullptr)
+		res == std::pmr::get_default_resource();
 	map.bitarray = static_cast<uint8_t*>(res->allocate(map_bytes(map.width, map.height), 1));
 	// read body
 	if (!(in >> std::setw(8) >> buffer))
