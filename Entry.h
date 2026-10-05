@@ -67,7 +67,7 @@ struct gppc_patch
 };
 
 /**
- * @param map The patch to get data from
+ * @param patch The patch to get data from
  * @param i The index where data resides
  * @return 0/1 -> 1=traversable, 0=blocker
  */
@@ -117,7 +117,7 @@ void gppc_preprocess_init_map(struct gppc_patch init_map, const char* preprocess
  * ./run -run file.map.scen
  * ./run -check file.map.scen
  * 
- * @param[in] active_map The starting full map.
+ * @param[in] active_map The current map to search on.
  * @param[in] preprocess_filename The filename for the preprocessed data from gppc_preprocess_init_map, if using.  Open in read mode.
  * @return User data to be provided to other calls.
  */

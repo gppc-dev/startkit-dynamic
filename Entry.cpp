@@ -1,51 +1,41 @@
 #include "Entry.h"
-#include "BaselineSearch.hxx"
+#include <cstdlib>
 
 
 void gppc_preprocess_init_map(gppc_patch init_map, const char* preprocess_filename)
-{}
+{
+	// PREPROCESSING IMPLEMENT
+}
 
 
 void *gppc_search_init(gppc_patch active_map, const char* preprocess_filename)
 {
-  auto* STS = new baseline::SpanningTreeSearch(active_map);
-  return STS;
+	// SEARCH SETUP IMPLEMENT
+	std::abort();
 }
 
 
 void gppc_map_change(void *data, const gppc_patch* changes, uint32_t changes_length)
 {
-  auto* STS = static_cast<baseline::SpanningTreeSearch*>(data);
-  // SpanningTreeSearch must update its internal structure.
-  // It is not smart, so it will update the whole map, thus ignores changes.
-  STS->update_grid();
+	// ON MAP CHANGE IMPLEMENT
 }
 
 
 gppc_path gppc_get_path(void *data, gppc_point start, gppc_point goal)
 {
-  auto* STS = static_cast<baseline::SpanningTreeSearch*>(data);
-  bool exists = STS->search(baseline::Point(start.x, start.y), baseline::Point(goal.x, goal.y));
-  if (!exists)
-    return gppc_path{};
-  
-  auto& path = STS->get_path();
-  gppc_path res_path{};
-  res_path.path = path.data();
-  res_path.length = path.size();
-  // res_path.incomplete = 0; // not required as value-init defaults it to 0
-  return res_path;
+	// QUERY IMPLEMENT
+	std::abort();
 }
 
 
 void gppc_free_data(void *data)
 {
-  auto* STS = static_cast<baseline::SpanningTreeSearch*>(data);
-  delete STS;
+	// FREE IMPLEMENT
 }
 
 
 const char* gppc_get_name()
 {
-  return "example-DynamicSpanningTreeSearch-8N";
+	std::abort();
+	return "NAME_IMPLEMENT";
 }
