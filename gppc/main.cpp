@@ -32,14 +32,20 @@ SOFTWARE.
 #include <iomanip>
 #include <limits>
 #include <filesystem>
+#include <cerrno>
 #include "GPPC.h"
 #include "ScenarioLoader.h"
 #include "Timer.h"
 #include "validator/ValidateSerialize.hpp"
 #include "Entry.h"
 
-#if __linux__
+#if !defined(GPPC_MEMORY_RECORD) && defined(__linux__)
 #define GPPC_MEMORY_RECORD
+#endif
+
+// dynamic loading
+#if !defined(GPPC_DYNAMIC_LOADING) && ( defined(__linux__) || defined(__APPLE__) )
+#define GPPC_DYNAMIC_LOADING
 #endif
 
 #ifdef GPPC_MEMORY_RECORD
@@ -47,7 +53,70 @@ SOFTWARE.
 #include <unistd.h>
 #endif
 
+#ifdef GPPC_DYNAMIC_LOADING
+#include <dlfcn.h>
+#define GPPC_CALL(fn) GPPCentry.fn
+#else
+#define GPPC_CALL(fn) ::fn
+#endif
+
 namespace GPPC {
+
+#ifdef GPPC_DYNAMIC_LOADING
+// struct for dlopen use, create global GPPCentry
+struct libGPPCentry
+{
+	using preprocess_type = void(gppc_patch, const char*);
+	using init_type = void*(gppc_patch, const char*);
+	using change_type = void(void*, const gppc_patch*, uint32_t);
+	using path_type = gppc_path(void*, gppc_point, gppc_point);
+	using free_type = void(void*);
+	using name_type = const char*();
+
+	void* handle = nullptr;
+	preprocess_type* gppc_preprocess_init_map = nullptr;
+	init_type* gppc_search_init = nullptr;
+	change_type* gppc_map_change = nullptr;
+	path_type* gppc_get_path = nullptr;
+	free_type* gppc_free_data = nullptr;
+	name_type* gppc_get_name = nullptr;
+
+	/// @return 0 on success, errorno on failure
+	int load(const char* libfile, std::ostream* error = nullptr);
+};
+
+int libGPPCentry::load(const char* libfile, std::ostream* error)
+{
+	if (handle != nullptr) {
+		if (error) *error << "failed to open library, already open\n";
+		return EINVAL; // Invalid argument
+	}
+	
+	handle = dlopen(libfile, RTLD_LAZY);
+	if (handle == nullptr) {
+		if (error) *error << "failed to open library \"" << libfile << "\"\n";
+		return ELIBACC; // Can not access a needed shared library
+	}
+
+	// link handle to library functions
+#define GPPC_libGPPCentry_LOAD_DEFAULT(name,type) \
+	if (void* sym = dlsym(handle, #name); sym == nullptr) { \
+		if (error) *error << "failed to link " #name "\n"; \
+		return ELIBBAD; /* Accessing a corrupted shared library */ \
+	} else { \
+		name = reinterpret_cast<type*>(sym); \
+	}
+	GPPC_libGPPCentry_LOAD_DEFAULT(gppc_preprocess_init_map,preprocess_type)
+	GPPC_libGPPCentry_LOAD_DEFAULT(gppc_search_init,init_type)
+	GPPC_libGPPCentry_LOAD_DEFAULT(gppc_map_change,change_type)
+	GPPC_libGPPCentry_LOAD_DEFAULT(gppc_get_path,path_type)
+	GPPC_libGPPCentry_LOAD_DEFAULT(gppc_free_data,free_type)
+	GPPC_libGPPCentry_LOAD_DEFAULT(gppc_get_name,name_type)
+#undef GPPC_libGPPCentry_LOAD_DEFAULT
+
+	return 0;
+}
+#endif
 
 using path_type = std::vector<::gppc_point>;
 constexpr ::gppc_point point_invalid = ::gppc_point{
@@ -153,7 +222,7 @@ public:
 					// map changed
 					auto& patches = scen_run.getAppliedPatches();
 					t.StartTimer();
-					::gppc_map_change(data, patches.data(), patches.size());
+					GPPC_CALL(gppc_map_change)(data, patches.data(), patches.size());
 					t.EndTimer();
 					snapshot_time = t.GetElapsedTime();
 				}
@@ -181,7 +250,7 @@ public:
 			::gppc_point run_cost_prefix = point_invalid;
 			do {
 				t.StartTimer();
-				result_path = ::gppc_get_path(data, scen.start, scen.goal);
+				result_path = GPPC_CALL(gppc_get_path)(data, scen.start, scen.goal);
 				t.EndTimer();
 				tcost_curr += t.GetElapsedTime();
 				// move result_path into thePath
@@ -256,7 +325,7 @@ public:
 	{
 		if (!ParseArgs(argc, argv)) {
 			PrintHelp(argv);
-			return 1;
+			return EINVAL;
 		}
 
 		bool redirect_output = std::getenv("GPPC_REDIRECT_OUTPUT") != nullptr;
@@ -266,13 +335,18 @@ public:
 			std::freopen("run.stderr", "w", stderr);
 		}
 
+		if (auto r = GPPCentry.load("libGPPCentry.so", &std::cerr); r != 0) {
+			std::cerr << "Failed to open shared library at libGPPCentry.so" << std::endl;
+			return r;
+		}
+
 		// in mapData, 1: traversable, 0: obstacle
 		ScenarioLoader scen;
 		if (!scen.load(scenfile)) {
 			std::cerr << "Failed to load scenario file: " << scenfile << std::endl;
-			return 1;
+			return EIO;
 		}
-		datafile = index_dir / (std::string(::gppc_get_name()) + "-" + scenfile.stem().string());
+		datafile = index_dir / (std::string(GPPC_CALL(gppc_get_name)()) + "-" + scenfile.stem().string());
 
 		ScenarioRunner scenRun;
 		scenRun.linkScen(scen);
@@ -281,7 +355,7 @@ public:
 			return 1; // no queries to run
 
 		if (pre)
-			::gppc_preprocess_init_map(scenRun.getActiveMap(), datafile.c_str());
+			GPPC_CALL(gppc_preprocess_init_map)(scenRun.getActiveMap(), datafile.c_str());
 		
 		if (!run)
 			return 0;
@@ -290,7 +364,7 @@ public:
 		{
 			Timer timer;
 			timer.StartTimer();
-			reference = ::gppc_search_init(scenRun.getActiveMap(), datafile.c_str());
+			reference = GPPC_CALL(gppc_search_init)(scenRun.getActiveMap(), datafile.c_str());
 			timer.EndTimer();
 			std::ofstream fout("run.info");
 			fout << "search_init " << timer.GetElapsedTime().count() << std::endl;
@@ -322,7 +396,7 @@ public:
 		}
 #endif
 
-		::gppc_free_data(reference);
+		GPPC_CALL(gppc_free_data)(reference);
 
 		return 0;
 	}
@@ -349,6 +423,7 @@ public:
 	bool run	 = false;
 	bool check = false;
 	std::vector<ResultRow> result_csv;
+	libGPPCentry GPPCentry;
 };
 
 };
