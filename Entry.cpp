@@ -1,6 +1,12 @@
 #include "Entry.h"
 #include <cstdlib>
 
+int gppc_scenario_tags(int tags)
+{
+	// TAGS CHECK IMPLEMENT
+	return 1;
+}
+
 
 void gppc_preprocess_init_map(gppc_patch init_map, const char* preprocess_filename)
 {

@@ -82,6 +82,55 @@ inline int gppc_patch_get_xy(struct gppc_patch patch, uint16_t x, uint16_t y)
 	return gppc_patch_get(patch, (int)y * (int)patch.width + (int)x);
 }
 
+enum gppc_tags
+{
+	GPPC_SIZE_SMALL = 1 << 0,
+	GPPC_SIZE_MEDIUM = 1 << 1,
+	GPPC_SIZE_LARGE = 1 << 2,
+	GPPC_SIZE_XLARGE = 1 << 3,
+
+	GPPC_TYPE_REVEAL = 1 << 4,
+	GPPC_TYPE_FADE = 1 << 5,
+	GPPC_TYPE_ANY = 1 << 6,
+	GPPC_TYPE_FROZEN = 1 << 7,
+
+	GPPC_RATE_RAPID = 1 << 8,
+	GPPC_RATE_FREQUENT = 1 << 9,
+	GPPC_RATE_INFEQUENT = 1 << 10,
+	GPPC_RATE_NOMINAL = 1 << 11,
+};
+
+/**
+ * @param tags the mask listing all tags, as given by main.
+ * @param is_tag the tag to check from gppc_tags, supports any combination.
+ * @return if all is_tag is included in tags, returns 1, otherwise 0.
+ */
+inline int gppc_check_tag(int tags, enum gppc_tags is_tag)
+{
+	return (tags & is_tag) == is_tag;
+}
+
+/**
+ * User code to check the tags associated with the scenario.
+ * This function is optional, as in its definition can be excluded from the library, which will be
+ * the equivalent of always returning 1.
+ *
+ * It is up to the user to decide how to handle the information given.
+ * This function will match a flag set drawn from gppc_tags, and guarantees 1 SIZE, 1 RATE,
+ * and [1-2] TYPE, where 2 TYPE can only be (GPPC_TYPE_ANY|GPPC_TYPE_FROZEN).
+ * If 0 is given in tags, than no tags were provided to run and is not determinable, the GPPC
+ * guarantees that correct tags are always provided.
+ *
+ * Check tags with gppc_check_tag or user provided uses.
+ * Returning 0 will signal that your solver does not support this combination of tags and the program
+ * will exit.
+ * This function will be called before gppc_preprocess_init_map and gppc_search_init.
+ *
+ * @param[in] tags a flag set of gppc_tags enums.
+ * @return 0 if solver does not support tags, any other value (1) otherwise.
+ */
+int gppc_scenario_tags(int tags);
+
 /**
  * User code used during preprocessing of a map.  Can be left blank if no pre-processing is required.
  * It will not be called in the same program execution as `gppc_search_init` is called,

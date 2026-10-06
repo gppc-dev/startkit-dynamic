@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include <array>
 #include <cstdio>
 #include <ios>
 #include <numeric>
@@ -63,6 +64,7 @@ SOFTWARE.
 namespace GPPC {
 
 #ifdef GPPC_DYNAMIC_LOADING
+
 // struct for dlopen use, create global GPPCentry
 struct libGPPCentry
 {
@@ -72,6 +74,7 @@ struct libGPPCentry
 	using path_type = gppc_path(void*, gppc_point, gppc_point);
 	using free_type = void(void*);
 	using name_type = const char*();
+	using tag_type = int(int);
 
 	void* handle = nullptr;
 	preprocess_type* gppc_preprocess_init_map = nullptr;
@@ -80,9 +83,15 @@ struct libGPPCentry
 	path_type* gppc_get_path = nullptr;
 	free_type* gppc_free_data = nullptr;
 	name_type* gppc_get_name = nullptr;
+	tag_type* gppc_scenario_tags = nullptr;
 
 	/// @return 0 on success, errorno on failure
 	int load(const char* libfile, std::ostream* error = nullptr);
+
+	static int gppc_scenario_tags_fallback(int)
+	{
+		return 1;
+	}
 };
 
 int libGPPCentry::load(const char* libfile, std::ostream* error)
@@ -92,7 +101,7 @@ int libGPPCentry::load(const char* libfile, std::ostream* error)
 		return EINVAL; // Invalid argument
 	}
 	
-	handle = dlopen(libfile, RTLD_LAZY);
+	handle = ::dlopen(libfile, RTLD_LAZY);
 	if (handle == nullptr) {
 		if (error) *error << "failed to open library \"" << libfile << "\"\n";
 		return ELIBACC; // Can not access a needed shared library
@@ -100,12 +109,13 @@ int libGPPCentry::load(const char* libfile, std::ostream* error)
 
 	// link handle to library functions
 #define GPPC_libGPPCentry_LOAD_DEFAULT(name,type) \
-	if (void* sym = dlsym(handle, #name); sym == nullptr) { \
+	if (void* sym = ::dlsym(handle, #name); sym == nullptr) { \
 		if (error) *error << "failed to link " #name "\n"; \
 		return ELIBBAD; /* Accessing a corrupted shared library */ \
 	} else { \
 		name = reinterpret_cast<type*>(sym); \
 	}
+
 	GPPC_libGPPCentry_LOAD_DEFAULT(gppc_preprocess_init_map,preprocess_type)
 	GPPC_libGPPCentry_LOAD_DEFAULT(gppc_search_init,init_type)
 	GPPC_libGPPCentry_LOAD_DEFAULT(gppc_map_change,change_type)
@@ -114,9 +124,28 @@ int libGPPCentry::load(const char* libfile, std::ostream* error)
 	GPPC_libGPPCentry_LOAD_DEFAULT(gppc_get_name,name_type)
 #undef GPPC_libGPPCentry_LOAD_DEFAULT
 
+	// link optional functions
+#define GPPC_libGPPCentry_LOAD_OPT(name,type,fallback) \
+	::dlerror(); \
+	if (void* sym = ::dlsym(handle, #name); sym == nullptr) { \
+		char* err = ::dlerror(); \
+		if (err == nullptr) { \
+			*error << "failed to link " #name ": user function is null\n"; \
+			return ELIBBAD; /* Accessing a corrupted shared library */ \
+		} \
+		/* not user defined, use fallback */ \
+		name = fallback; \
+	} else { \
+		name = reinterpret_cast<type*>(sym); \
+	}
+
+	GPPC_libGPPCentry_LOAD_OPT(gppc_scenario_tags,tag_type,&libGPPCentry::gppc_scenario_tags_fallback)
+#undef GPPC_libGPPCentry_LOAD_OPT
+
 	return 0;
 }
-#endif
+
+#endif // GPPC_DYNAMIC_LOADING
 
 using path_type = std::vector<::gppc_point>;
 constexpr ::gppc_point point_invalid = ::gppc_point{
@@ -156,6 +185,63 @@ long double GetPathLength(const ::gppc_point* path, uint32_t count, ::gppc_point
 	return len;
 }
 
+int TagsConvertEnum(std::string_view tags)
+{
+	using namespace std::string_view_literals;
+	// ':' seperated list of tags, right padded ':' up to 10 (largest tag INFEQUENT) and ':' at front and back
+	constexpr auto tag_list = ":small::::::medium:::::large::::::xlarge:::::reveal:::::fade:::::::any::::::::frozen:::::rapid::::::frequent:::infrequent:nominal::::"sv;
+	constexpr std::array<gppc_tags, 12> tag_id{{
+		GPPC_SIZE_SMALL,
+		GPPC_SIZE_MEDIUM,
+		GPPC_SIZE_LARGE,
+		GPPC_SIZE_XLARGE,
+
+		GPPC_TYPE_REVEAL,
+		GPPC_TYPE_FADE,
+		GPPC_TYPE_ANY,
+		GPPC_TYPE_FROZEN,
+
+		GPPC_RATE_RAPID,
+		GPPC_RATE_FREQUENT,
+		GPPC_RATE_INFEQUENT,
+		GPPC_RATE_NOMINAL
+	}};
+
+	// compute tag
+	constexpr size_t max_size = 10;
+	int result_tags = 0;
+	while (!tags.empty()) {
+		auto next_tag = tags.substr(0, tags.find(':'));
+		tags.remove_prefix(next_tag.size());
+		if (!tags.empty()) tags.remove_prefix(1); // remove column
+
+		if (next_tag.size() == 0)
+			continue; // empty tag, ignore
+		else if (next_tag.size() > max_size) {
+			std::cerr << "unknown gppc_tag " << next_tag << std::endl;
+			continue;
+		}
+
+		char buffer[max_size + 2]; // buffer big enough for whole tag
+		next_tag.copy(buffer + 1, max_size);
+		buffer[0] = buffer[next_tag.size()+1] = ':';
+		size_t tag_p = tag_list.find(buffer, 0, next_tag.size() + 2);
+		if (tag_p == std::string_view::npos) {
+			std::cerr << "unknown gppc_tag " << next_tag << std::endl;
+			continue;
+		}
+		tag_p /= 12; // max_tag_len + 2
+		if (tag_p >= tag_id.size()) {
+			std::cerr << "unexpected results with gppc_tag " << next_tag << std::endl;
+			assert(false);
+			continue;
+		}
+		result_tags |= tag_id[tag_p];
+	}
+
+	return result_tags;
+}
+
 class App
 {
 public:
@@ -184,16 +270,23 @@ public:
 
 		if (argc < 3) return false;
 		scenfile = argv[2];
+
+		if (argc >= 4) {
+			// tags
+			tags = TagsConvertEnum(argv[3]);
+		}
+
 		return true;
 	}
 
 	void PrintHelp(char **argv) {
-		std::printf("Invalid Arguments\nUsage %s <flag> <scenario>\n", argv[0]);
-		std::printf("Flags:\n");
-		std::printf("\t-full : Preprocess map and run scenario\n");
-		std::printf("\t-pre : Preprocess map\n");
-		std::printf("\t-run : Run scenario without preprocessing\n");
-		std::printf("\t-check: Run for validation\n");
+		std::cout << "Invalid Arguments\nUsage " << argv[0] << "<flag> <scenario> [<tags>]\n"
+		          << "Flags:\n"
+				  << "\t-full : Preprocess map and run scenario\n"
+				  << "\t-pre : Preprocess map\n"
+				  << "\t-run : Run scenario without preprocessing\n"
+				  << "\t-check: Run for validation\n"
+				  << "Tags: accepts column (:) seperated list of dynamic tags.\n";
 	}
 
 	int RunExperiment(ScenarioRunner& scen_run, void* data) {
@@ -348,6 +441,12 @@ public:
 		}
 		datafile = index_dir / (std::string(GPPC_CALL(gppc_get_name)()) + "-" + scenfile.stem().string());
 
+		int user_supports_tags = GPPC_CALL(gppc_scenario_tags)(tags);
+		if (user_supports_tags == 0) {
+			// TODO: abort
+			return 0;
+		}
+
 		ScenarioRunner scenRun;
 		scenRun.linkScen(scen);
 		int qid = scenRun.nextQuery();
@@ -421,7 +520,8 @@ public:
 	const std::filesystem::path index_dir = "index_data";
 	bool pre	 = false;
 	bool run	 = false;
-	bool check = false;
+	bool check   = false;
+	int  tags    = 0;
 	std::vector<ResultRow> result_csv;
 	libGPPCentry GPPCentry;
 };
