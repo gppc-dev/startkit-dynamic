@@ -443,7 +443,7 @@ public:
 
 		int user_supports_tags = GPPC_CALL(gppc_scenario_tags)(tags);
 		if (user_supports_tags == 0) {
-			// TODO: abort
+			std::cout << "__TAGS_NOT_SUPPORTED__\n";
 			return 0;
 		}
 
